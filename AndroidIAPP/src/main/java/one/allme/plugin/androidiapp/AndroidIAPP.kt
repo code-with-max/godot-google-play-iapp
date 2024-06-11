@@ -43,14 +43,6 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     private val queryPurchasesResponse = SignalInfo("query_purchases_response", Any::class.java)
     private val queryProductResponse = SignalInfo("query_product_response", Any::class.java)
 
-//    override fun getPluginSignals(): MutableSet<SignalInfo> {
-//        val signals: MutableSet<SignalInfo> = ArraySet()
-//        signals.add(SignalInfo("helloResponse"))
-//        signals.add(SignalInfo("startConnection"))
-//        signals.add(SignalInfo("connected"))
-//        signals.add(SignalInfo("disconnected"))
-//        return signals
-//    }
 
     override fun getPluginSignals(): Set<SignalInfo> {
         Log.i(pluginName, "Registering plugin signals")
@@ -131,6 +123,20 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             }
             emitSignal(queryPurchasesResponse.name, returnValue)
         }
+    }
+
+    // Use kotlin functions for queryPurchases
+    // It crashes on Godot  4.2
+//    @UsedByGodot
+//    suspend fun queryPurchasesAsync() {
+//        val params = QueryPurchasesParams.newBuilder()
+//            .setProductType(ProductType.SUBS)
+//
+//        // uses queryPurchasesAsync Kotlin extension function
+//        val purchasesResult = billingClient.queryPurchasesAsync(params.build())
+//
+//        // check purchasesResult.billingResult
+//        // process returned purchasesResult.purchasesList, e.g. display the plans user owns
     }
 
 
