@@ -17,7 +17,7 @@ object IAPP_utils {
 
 
     private fun convertPurchaseToDictionary(purchase: Purchase): Dictionary {
-        val dictionary = Dictionary()
+        val dictionary = Dictionary() // from Godot type Dictionary
         dictionary["account_identifiers"] = purchase.accountIdentifiers
         dictionary["developer_payload"] = purchase.developerPayload
         dictionary["order_id"] = purchase.orderId

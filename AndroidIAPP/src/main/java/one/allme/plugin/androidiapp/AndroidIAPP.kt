@@ -64,7 +64,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
     // Just say hello func
     @UsedByGodot
-    private fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
+    fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
         runOnUiThread {
             Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
             emitSignal(helloResponse.name, says)
@@ -104,7 +104,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
     @UsedByGodot
     //type  INAPP, SUBS
-    fun queryPurchases(type: String?) {
+    private fun queryPurchases() {
         val params = QueryPurchasesParams
             .newBuilder()
             .setProductType(ProductType.INAPP)
@@ -142,7 +142,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
 
     @UsedByGodot
-    fun queryProductDetails(listOfProductsIDs: Array<String>) {
+    private fun queryProductDetails(listOfProductsIDs: Array<String>) {
         val products = ArrayList<QueryProductDetailsParams.Product>()
 
         for (productID in listOfProductsIDs) {
