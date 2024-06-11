@@ -77,6 +77,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     private fun startConnection() {
         billingClient.startConnection(this)
         emitSignal(startConnection.name)
+        Log.v(pluginName, "Billing service start connection")
     }
 
 
@@ -91,7 +92,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     override fun onBillingSetupFinished(billingResult: BillingResult) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             emitSignal(connected.name)
-            Log.v(pluginName, "Billing setup finished")
+            Log.v(pluginName, "Billing service connected")
             // The BillingClient is ready. You can query purchases here.
         }
     }
@@ -109,19 +110,19 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             .setProductType(ProductType.INAPP)
             .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
-            val returnValue = Dictionary() // from Godot type Dictionary
+            val returnDict = Dictionary() // from Godot type Dictionary
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Purchases found")
-                returnValue["purchasesList"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
-                returnValue["responseCode"] = billingResult.responseCode
+                returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
+                returnDict["response_code"] = billingResult.responseCode
 
             } else {
                 Log.v(pluginName, "No purchase found")
-                returnValue["debug_message"] = billingResult.debugMessage
-                returnValue["responseCode"] = billingResult.responseCode
-                returnValue["purchases"] = null
+                returnDict["debug_message"] = billingResult.debugMessage
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["purchases_list"] = null
             }
-            emitSignal(queryPurchasesResponse.name, returnValue)
+            emitSignal(queryPurchasesResponse.name, returnDict)
         }
     }
 
@@ -137,7 +138,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 //
 //        // check purchasesResult.billingResult
 //        // process returned purchasesResult.purchasesList, e.g. display the plans user owns
-    }
+//    }
 
 
     @UsedByGodot
@@ -157,18 +158,18 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
         billingClient.queryProductDetailsAsync(queryProductDetailsParams) {
             billingResult, productDetailsList ->
-            val returnValue = Dictionary() // from Godot type Dictionary
+            val returnDict = Dictionary() // from Godot type Dictionary
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Product details found")
-                returnValue["productDetailsList"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
-                returnValue["responseCode"] = billingResult.responseCode
+                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
+                returnDict["response_code"] = billingResult.responseCode
             } else {
                 Log.v(pluginName, "No product details found")
-                returnValue["debug_message"] = billingResult.debugMessage
-                returnValue["responseCode"] = billingResult.responseCode
-                returnValue["productDetailsList"] = null
+                returnDict["debug_message"] = billingResult.debugMessage
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["product_details_list"] = null
             }
-            emitSignal(queryProductResponse.name, returnValue)
+            emitSignal(queryProductResponse.name, returnDict)
         }
 
     }

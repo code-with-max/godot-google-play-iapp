@@ -18,22 +18,22 @@ object IAPP_utils {
 
     private fun convertPurchaseToDictionary(purchase: Purchase): Dictionary {
         val dictionary = Dictionary()
-        dictionary["accountIdentifiers"] = purchase.accountIdentifiers
-        dictionary["developerPayload"] = purchase.developerPayload
-        dictionary["orderId"] = purchase.orderId
-        dictionary["originalJson"] = purchase.originalJson
-        dictionary["packageName"] = purchase.packageName
-        dictionary["pendingPurchaseUpdate"] = purchase.pendingPurchaseUpdate
+        dictionary["account_identifiers"] = purchase.accountIdentifiers
+        dictionary["developer_payload"] = purchase.developerPayload
+        dictionary["order_id"] = purchase.orderId
+        dictionary["original_json"] = purchase.originalJson
+        dictionary["package_name"] = purchase.packageName
+        dictionary["pending_purchase_update"] = purchase.pendingPurchaseUpdate
         dictionary["products"] = purchase.products
-        dictionary["purchaseState"] = purchase.purchaseState
-        dictionary["purchaseTime"] = purchase.purchaseTime
-        dictionary["purchaseToken"] = purchase.purchaseToken
+        dictionary["purchase_state"] = purchase.purchaseState
+        dictionary["purchase_time"] = purchase.purchaseTime
+        dictionary["purchase_token"] = purchase.purchaseToken
         dictionary["quantity"] = purchase.quantity
         dictionary["signature"] = purchase.signature
-        dictionary["hashCode"] = purchase.hashCode()
-        dictionary["isAcknowledged"] = purchase.isAcknowledged
-        dictionary["isAutoRenewing"] = purchase.isAutoRenewing
-        dictionary["toString"] = purchase.toString()
+        dictionary["hash_code"] = purchase.hashCode()
+        dictionary["is_acknowledged"] = purchase.isAcknowledged
+        dictionary["is_auto_renewing"] = purchase.isAutoRenewing
+        dictionary["to_string"] = purchase.toString()
         return dictionary
     }
 
@@ -51,13 +51,13 @@ object IAPP_utils {
         val dictionary = Dictionary()  // from Godot type Dictionary
         dictionary["description"] = productsDetails.description
         dictionary["name"] = productsDetails.name
-        dictionary["oneTimePurchaseOfferDetails"] = convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails)
-        dictionary["productID"] = productsDetails.productId
-        dictionary["productType"] = productsDetails.productType
-        dictionary["subscriptionOfferDetails"] = productsDetails.subscriptionOfferDetails
+        dictionary["product_id"] = productsDetails.productId
+        dictionary["product_type"] = productsDetails.productType
+        dictionary["subscription_offer_details"] = productsDetails.subscriptionOfferDetails
         dictionary["title"] = productsDetails.title
-        dictionary["hashCode"] = productsDetails.hashCode()
-        dictionary["toString"] = productsDetails.toString()
+        dictionary["hash_code"] = productsDetails.hashCode()
+        dictionary["to_string"] = productsDetails.toString()
+        dictionary["one_time_purchase_offer_details"] = convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails)
         return dictionary
     }
 
@@ -65,13 +65,13 @@ object IAPP_utils {
     private fun convertPurchaseOfferToDict(offerDetails: ProductDetails.OneTimePurchaseOfferDetails?): Dictionary {
         val dictionary = Dictionary()  // from Godot type Dictionary
         if (offerDetails != null) {
-            dictionary["formattedPrice"] = offerDetails.formattedPrice
+            dictionary["formatted_price"] = offerDetails.formattedPrice
         }
         if (offerDetails != null) {
-            dictionary["priceCurrencyCode"] = offerDetails.priceCurrencyCode
+            dictionary["price_currency_code"] = offerDetails.priceCurrencyCode
         }
         if (offerDetails != null) {
-            dictionary["priceAmountMicros"] = offerDetails.priceAmountMicros
+            dictionary["price_amount_micros"] = offerDetails.priceAmountMicros
         }
             return dictionary
         }
