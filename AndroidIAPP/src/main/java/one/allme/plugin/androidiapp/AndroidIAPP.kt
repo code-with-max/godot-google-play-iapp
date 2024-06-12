@@ -107,7 +107,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     private fun queryPurchases() {
         val params = QueryPurchasesParams
             .newBuilder()
-            .setProductType(ProductType.INAPP)
+            .setProductType(ProductType.SUBS)
             .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
             val returnDict = Dictionary() // from Godot type Dictionary
@@ -148,7 +148,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
         for (productID in listOfProductsIDs) {
             products.add(QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(productID)
-                .setProductType(BillingClient.ProductType.INAPP)
+                .setProductType(BillingClient.ProductType.SUBS)
                 .build())
         }
 
