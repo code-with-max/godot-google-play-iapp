@@ -56,6 +56,7 @@ object IAPP_utils {
 
     // Product Details utils below
     // Convert list of detailed product details to array
+    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetailsResponseListener
     // Called from: queryProductDetails
     fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>): Array<Any?> {
         val productDetailsArray = arrayOfNulls<Any>(productDetailsList.size)
