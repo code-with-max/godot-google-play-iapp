@@ -140,13 +140,13 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
 
     @UsedByGodot
-    private fun queryProductDetails(listOfProductsIDs: Array<String>) {
+    private fun queryProductDetails(listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
         val products = ArrayList<QueryProductDetailsParams.Product>()
 
         for (productID in listOfProductsIDs) {
             products.add(QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(productID)
-                .setProductType(BillingClient.ProductType.SUBS)
+                .setProductType(productType)
                 .build())
         }
 
