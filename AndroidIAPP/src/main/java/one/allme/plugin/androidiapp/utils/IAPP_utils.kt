@@ -118,7 +118,7 @@ object IAPP_utils {
     private fun convertSubscriptionDetailsToDictionary(offerDetails: ProductDetails.SubscriptionOfferDetails): Dictionary {
         val dictionary = Dictionary()  // from Godot type Dictionary
         dictionary["base_plan_id"] = offerDetails.basePlanId
-        dictionary["installment_plan_details"] = offerDetails.installmentPlanDetails
+        dictionary["installment_plan_details"] = convertInstallementPlanDetailsToArray(offerDetails.installmentPlanDetails)
         dictionary["offer_id"] = offerDetails.offerId
         dictionary["offer_tags"] = convertOfferTagsListToArray(offerDetails.offerTags) // list of String
         dictionary["offer_token"] = offerDetails.offerToken
@@ -161,6 +161,17 @@ object IAPP_utils {
         dictionary["price_amount_micros"] = phase.priceAmountMicros
         dictionary["price_currency_code"] = phase.priceCurrencyCode
         dictionary["recurrence_mode"] = phase.recurrenceMode
+        return dictionary
+    }
+
+
+    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.InstallmentPlanDetails
+    private fun convertInstallementPlanDetailsToArray(planDetails: ProductDetails.InstallmentPlanDetails?): Dictionary {
+        val dictionary = Dictionary()  // from Godot type Dictionary
+        if (planDetails != null) {
+            dictionary["installment_plan_commitment_payments_count"] = planDetails.installmentPlanCommitmentPaymentsCount
+            dictionary["subsequent_installment_plan_commitment_payments_count"] = planDetails.subsequentInstallmentPlanCommitmentPaymentsCount
+        }
         return dictionary
     }
 
