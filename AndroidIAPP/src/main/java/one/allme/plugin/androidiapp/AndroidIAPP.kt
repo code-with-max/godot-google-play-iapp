@@ -7,6 +7,7 @@ import android.widget.Toast
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
@@ -39,6 +40,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     private val disconnected = SignalInfo("disconnected")
     private val queryPurchasesResponse = SignalInfo("query_purchases_response", Any::class.java)
     private val queryProductResponse = SignalInfo("query_product_response", Any::class.java)
+    private val purchasingFailed = SignalInfo("purchasing_failed", Int::class.java, String::class.java)
 
 
     override fun getPluginSignals(): Set<SignalInfo> {
@@ -50,6 +52,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             disconnected,
             queryPurchasesResponse,
             queryProductResponse,
+            purchasingFailed,
         )
     }
 
@@ -172,4 +175,67 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
 
     }
 
+    @UsedByGodot
+    private fun purchase(productID: String, productType: String = ProductType.INAPP) {
+        val activity = activity!!
+
+        // get product details from product ID
+        billingClient.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(productID)
+                        .setProductType(productType)
+                        .build()
+                )
+            )
+            .build()) { billingResult, productDetailsList ->
+
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val productDetailsParamsList = listOf(
+                        BillingFlowParams.ProductDetailsParams.newBuilder().apply {
+                            setProductDetails(productDetailsList[0])
+                            val offerDetails = productDetailsList[0].subscriptionOfferDetails?.get(0)
+                            if (offerDetails != null) {
+                                setOfferToken(offerDetails.offerToken)
+                            }
+                        }.build()
+                )
+
+            val flowParams = BillingFlowParams
+                .newBuilder()
+                .setProductDetailsParamsList(productDetailsParamsList)
+                .build()
+
+            val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
+
+            // OK result will be received in onPurchasesUpdated
+            if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                when (productType) {
+                    ProductType.INAPP -> {
+                        Log.v(pluginName, "Product $productID purchasing launched successfully")
+                    }
+                    ProductType.SUBS -> {
+                        Log.v(pluginName, "Subscription $productID purchasing launched successfully")
+                    }
+                    else -> {
+                        Log.v(pluginName, "Untyped $productID purchasing launched successfully :)")
+                    }
+                }
+            } else {
+                Log.v(pluginName, "$productID purchasing failed")
+                // Says something to godot users
+                emitSignal(purchasingFailed.name, purchasingResult.responseCode, purchasingResult.debugMessage)
+             }
+            }
+        }
+    }
+
+
+
 }
+
+
+
+
+
