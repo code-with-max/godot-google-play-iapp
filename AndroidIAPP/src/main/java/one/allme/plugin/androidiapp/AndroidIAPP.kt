@@ -2,7 +2,6 @@ package one.allme.plugin.androidiapp
 
 import one.allme.plugin.androidiapp.utils.IAPP_utils
 
-import android.util.ArraySet
 import android.util.Log
 import android.widget.Toast
 import com.android.billingclient.api.BillingClient
@@ -13,13 +12,11 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.android.billingclient.api.queryPurchasesAsync
 import org.godotengine.godot.Godot
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.plugin.GodotPlugin
 import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
-import java.util.Objects
 
 
 class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, BillingClientStateListener {
@@ -102,12 +99,13 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
         TODO("Not yet implemented")
     }
 
+
+    // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ProductType
     @UsedByGodot
-    //type  INAPP, SUBS
-    private fun queryPurchases() {
+    private fun queryPurchases(productType: String = ProductType.INAPP) {
         val params = QueryPurchasesParams
             .newBuilder()
-            .setProductType(ProductType.SUBS)
+            .setProductType(productType)
             .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
             val returnDict = Dictionary() // from Godot type Dictionary
