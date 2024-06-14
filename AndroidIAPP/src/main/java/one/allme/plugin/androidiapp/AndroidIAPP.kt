@@ -22,14 +22,14 @@ import org.godotengine.godot.plugin.UsedByGodot
 
 class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, BillingClientStateListener {
 
-    private val purchasesUpdatedListener =
-        PurchasesUpdatedListener { _, _ -> }
+//    private val purchasesUpdatedListener =
+//        PurchasesUpdatedListener { billingResult, purchases -> }
 
 
     private val billingClient: BillingClient = BillingClient
         .newBuilder(activity!!)
         .enablePendingPurchases()
-        .setListener(purchasesUpdatedListener)
+        .setListener(this)
         .build()
 
 
@@ -40,8 +40,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     private val disconnected = SignalInfo("disconnected")
     private val queryPurchasesResponse = SignalInfo("query_purchases_response", Any::class.java)
     private val queryProductResponse = SignalInfo("query_product_response", Any::class.java)
-    private val purchasingFailed = SignalInfo("purchasing_failed", Int::class.java, String::class.java)
-    private val queryDetailsFailed = SignalInfo("purchasing_failed", Int::class.java, String::class.java)
+    private val purchaseUpdated = SignalInfo("purchase_updated", Dictionary::class.java)
+    // Error signals
+    private val purchasingFailed = SignalInfo("purchasing_failed", Any::class.java)
+    private val queryDetailsFailed = SignalInfo("query_details_failed", Dictionary::class.java)
+    private val purchaseCanceled = SignalInfo("purchase_canceled", Any::class.java)
+    private val purchaseUpdatedError = SignalInfo("purchase_update_failed", Dictionary::class.java)
 
 
     override fun getPluginSignals(): Set<SignalInfo> {
@@ -55,6 +59,9 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             queryProductResponse,
             purchasingFailed,
             queryDetailsFailed,
+            purchaseUpdated,
+            purchaseCanceled,
+            purchaseUpdatedError,
         )
     }
 
@@ -97,11 +104,6 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             Log.v(pluginName, "Billing service connected")
             // The BillingClient is ready. You can query purchases here.
         }
-    }
-
-
-    override fun onPurchasesUpdated(p0: BillingResult, p1: MutableList<Purchase>?) {
-        TODO("Not yet implemented")
     }
 
 
@@ -164,13 +166,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             val returnDict = Dictionary() // from Godot type Dictionary
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Product details found")
-                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
                 returnDict["response_code"] = billingResult.responseCode
+                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
             } else {
                 Log.v(pluginName, "No product details found")
-                returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["response_code"] = billingResult.responseCode
-                returnDict["product_details_list"] = null
+                returnDict["debug_message"] = billingResult.debugMessage
             }
             emitSignal(queryProductResponse.name, returnDict)
         }
@@ -178,7 +179,10 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     }
 
     @UsedByGodot
-    private fun purchase(listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
+    private fun purchase(listOfProductsIDs: Array<String>,
+                         productType: String,
+                         isOfferPersonalized: Boolean) {
+
         val activity = activity!!
 
         // There can be only one!
@@ -218,6 +222,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
                 val flowParams = BillingFlowParams
                     .newBuilder()
                     .setProductDetailsParamsList(productDetailsParamsList)
+                    // https://developer.android.com/google/play/billing/integrate#personalized-price
+                    .setIsOfferPersonalized(isOfferPersonalized)
                     .build()
 
                 // Poneslos govno po trubam
@@ -246,6 +252,22 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     }
 
 
+    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
+        val dictionary = Dictionary() // from Godot type Dictionary
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+            // All good, some purchase(s) have been updated
+            Log.v(pluginName, "Purchases updated successfully")
+            dictionary["response_code"] = billingResult.responseCode
+            dictionary["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
+            emitSignal(purchaseUpdated.name, dictionary)
+        } else {
+            // Purchasing errors. Says something to Godot users.
+            Log.v(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
+            dictionary["response_code"] = billingResult.responseCode
+            dictionary["debug_message"] = billingResult.debugMessage
+            emitSignal(purchaseUpdatedError.name, dictionary)
+        }
+    }
 
 }
 
