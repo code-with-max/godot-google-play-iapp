@@ -4,6 +4,7 @@ import one.allme.plugin.androidiapp.utils.IAPP_utils
 
 import android.util.Log
 import android.widget.Toast
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
@@ -14,16 +15,22 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.consumePurchase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import org.godotengine.godot.Godot
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.plugin.GodotPlugin
 import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
+import kotlin.coroutines.suspendCoroutine
 
 
-class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, BillingClientStateListener {
+class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
+    PurchasesUpdatedListener,
+    BillingClientStateListener {
+
 
 //    private val purchasesUpdatedListener =
 //        PurchasesUpdatedListener { billingResult, purchases -> }
@@ -34,6 +41,11 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
         .enablePendingPurchases()
         .setListener(this)
         .build()
+
+
+        // private val acknowledgePurchaseResponseListener: AcknowledgePurchaseResponseListener = AcknowledgePurchaseResponseListener { billingResult -> }
+
+
 
 
     // Signals
@@ -56,6 +68,9 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     // Purchases consuming
     private val purchaseConsumedSignal = SignalInfo("purchase_consumed", Dictionary::class.java)
     private val purchaseConsumedErrorSignal = SignalInfo("purchase_consumed_error", Dictionary::class.java)
+    // Purchases acknowledge
+    private val purchaseAcknowledgedSignal = SignalInfo("purchase_acknowledged", Dictionary::class.java)
+    private val purchaseAcknowledgedErrorSignal = SignalInfo("purchase_acknowledged_error", Dictionary::class.java)
     // Error signals
     private val purchasingFailedSignal = SignalInfo("purchasing_failed", Any::class.java)
     private val queryDetailsFailedSignal = SignalInfo("query_details_failed", Dictionary::class.java)
@@ -80,6 +95,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             purchaseUpdatedErrorSignal,
             purchaseConsumedSignal,
             purchaseConsumedErrorSignal,
+            purchaseAcknowledgedSignal,
+            purchaseAcknowledgedErrorSignal
         )
     }
 
@@ -289,25 +306,80 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
     }
 
 
-    // Consume purchase
+    // Consume purchase using Kotlin coroutines
     // Kotlin coroutines are not supported in the current version of Godot (4.2).
+    // java.lang.NoSuchMethodError: no non-static method "Lone/allme/plugin/androidiapp/AndroidIAPP;.consumePurchaseKT
     // Use this feature in later versions.
+    //
 //    @UsedByGodot
-//    suspend fun consumePurchase(purchaseToken: String) {
+//    suspend fun consumePurchaseKT(purchaseTokenLocal: String) {
 //        val consumeParams = ConsumeParams.newBuilder()
-//            .setPurchaseToken(purchaseToken)
+//            .setPurchaseToken(purchaseTokenLocal)
 //            .build()
 //        val consumeResult = withContext(Dispatchers.IO) {
-//            client.consumePurchase(consumeParams)
+//            billingClient.consumePurchase(consumeParams) }
+//        val returnDict = Dictionary() // from Godot type Dictionary
+//        if (consumeResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+//            Log.v(pluginName, "Purchase ${consumeResult.purchaseToken} acknowledged successfully")
+//            returnDict["response_code"] = consumeResult.billingResult.responseCode
+//            returnDict["purchase_token"] = consumeResult.purchaseToken
+//            emitSignal(purchaseConsumedSignal.name, returnDict)
+//        } else {
+//            Log.v(pluginName, "Error purchase acknowledging, response code: ${consumeResult.billingResult.responseCode}")
+//            returnDict["response_code"] = consumeResult.billingResult.responseCode
+//            returnDict["debug_message"] = consumeResult.billingResult.debugMessage
+//            emitSignal(purchaseConsumedSignal.name, returnDict)
 //        }
 //    }
 
+
+    // Acknowledge purchase using Kotlin coroutines
+    // Kotlin coroutines are not supported in the current version of Godot (4.2).
+    // java.lang.NoSuchMethodError: no non-static method "Lone/allme/plugin/androidiapp/AndroidIAPP;.acknowledgePurchaseKT
+    // Use this feature in later versions.
+    //
+//    @UsedByGodot
+//    suspend fun acknowledgePurchaseKT(purchaseTokenLocal: String) {
+//        val returnDict = Dictionary() // from Godot type Dictionary
+//        val acknowledgeParams = AcknowledgePurchaseParams.newBuilder()
+//            .setPurchaseToken(purchaseTokenLocal)
+//            .build()
+//        try {
+//            withContext(Dispatchers.IO) {
+//                val acknowledgeResult = suspendCoroutine<BillingResult> { continuation ->
+//                    billingClient.acknowledgePurchase(acknowledgeParams) { billingResult ->
+//                        continuation.resume(billingResult)
+//                    }
+//                }
+//
+//                if (acknowledgeResult.responseCode == BillingClient.BillingResponseCode.OK) {
+//                    Log.v(pluginName, "Purchase $purchaseTokenLocal acknowledged successfully")
+//                    returnDict["response_code"] = acknowledgeResult.responseCode
+//                    returnDict["purchase_token"] = purchaseTokenLocal
+//                    emitSignal(purchaseAcknowledgedSignal.name, returnDict)
+//                } else {
+//                    Log.v(pluginName, "Error purchase acknowledging, response code: ${acknowledgeResult.responseCode}")
+//                    returnDict["response_code"] = acknowledgeResult.responseCode
+//                    returnDict["debug_message"] = acknowledgeResult.debugMessage
+//                    emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
+//                }
+//            }
+//        } catch (e: Exception) {
+//            Log.v (pluginName, "Error purchase acknowledging, exception: ${e.message}")
+//            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+//            returnDict["debug_message"] = e.message
+//            emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
+//        }
+//    }
+
+
+
     // Java style consuming purchase
     @UsedByGodot
-    fun consumePurchase(savedPurchaseToken: String) {
+    fun consumePurchase(purchaseTokenLocal: String) {
         //Log.v(pluginName, "Consuming purchase $savedPurchaseToken")
         val consumeParams = ConsumeParams.newBuilder()
-            .setPurchaseToken(savedPurchaseToken)
+            .setPurchaseToken(purchaseTokenLocal)
             .build()
         billingClient.consumeAsync(consumeParams) { billingResult, purchaseToken ->
             val returnDict = Dictionary() // from Godot type Dictionary
@@ -325,6 +397,31 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot), PurchasesUpdatedListener, 
             }
         }
     }
+
+
+    // Java style acknowledging purchase
+    @UsedByGodot
+    private fun acknowledgePurchase(purchaseToken: String) {
+        val acknowledgePurchaseParams = AcknowledgePurchaseParams
+            .newBuilder()
+            .setPurchaseToken(purchaseToken)
+            .build()
+        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
+            val returnDict = Dictionary() // from Godot type Dictionary
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                Log.v(pluginName, "Purchase $purchaseToken acknowledged successfully")
+                returnDict["response_code"] = billingResult.responseCode
+                emitSignal(purchaseAcknowledgedSignal.name, returnDict)
+            } else {
+                Log.v(pluginName, "Error purchase acknowledging, response code: ${billingResult.responseCode}")
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["debug_message"] = billingResult.debugMessage
+                emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
+            }
+        }
+    }
+
+
 }
 
 
