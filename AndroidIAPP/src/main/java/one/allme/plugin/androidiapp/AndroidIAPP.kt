@@ -142,6 +142,21 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     }
 
 
+    @get:UsedByGodot
+    val isReady: Boolean
+        get() {
+            return billingClient.isReady
+        }
+
+
+    // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ConnectionState
+    @get:UsedByGodot
+    val connectionState: Int
+        get() {
+            return billingClient.connectionState
+        }
+
+
     // Just say hello func
     @UsedByGodot
     fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
