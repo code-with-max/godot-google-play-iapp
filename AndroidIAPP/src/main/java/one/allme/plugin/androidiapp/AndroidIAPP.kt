@@ -90,7 +90,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         "purchase_updated", Dictionary::class.java,
         )
     private val purchaseCancelledSignal = SignalInfo(
-        "purchase_canceled", Dictionary::class.java,
+        "purchase_cancelled", Dictionary::class.java,
         )
     private val purchaseUpdatedErrorSignal = SignalInfo(
         "purchase_update_error", Dictionary::class.java,
@@ -145,6 +145,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     @get:UsedByGodot
     val isReady: Boolean
         get() {
+            Log.v(pluginName, "Is ready: ${billingClient.isReady}")
             return billingClient.isReady
         }
 
@@ -153,6 +154,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     @get:UsedByGodot
     val connectionState: Int
         get() {
+            Log.v(pluginName, "Connection state: ${billingClient.connectionState}")
             return billingClient.connectionState
         }
 
@@ -297,13 +299,13 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             val returnDict = Dictionary() // from Godot type Dictionary
             if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK) {
                 // Error getting details, say something to godot users.
-                Log.v(pluginName, "Error getting $productID details")
+                Log.v(pluginName, "Error getting $productID product details")
                 returnDict["response_code"] = queryDetailsResult.responseCode
                 returnDict["debug_message"] = queryDetailsResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
             } else {
                 // Product details found successfully. Launch purchase flow.
-                Log.v(pluginName, "Details for $productID found")
+                Log.v(pluginName, "Details for product $productID found")
                 val productDetailsParamsList = listOf(
                         BillingFlowParams.ProductDetailsParams.newBuilder().apply {
                             // There can be only one!
@@ -322,7 +324,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                     .setIsOfferPersonalized(isOfferPersonalized)
                     .build()
 
-                // Poneslos govno po trubam
+                // Running purchase flow.
                 val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
                 if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     // Purchasing successfully launched.
@@ -348,7 +350,93 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                     returnDict["debug_message"] = purchasingResult.debugMessage
                     returnDict["product_id"] = productID
                     emitSignal(purchaseErrorSignal.name, returnDict)
-             }
+                }
+            }
+        }
+    }
+
+
+    // Process subscriptions
+    @UsedByGodot
+    private fun subscribe(listOfProductsIDs: Array<String>,
+                          basePlanIDs: Array<String>,
+                          isOfferPersonalized: Boolean) {
+
+        val activity = activity!!
+
+        // There can be only one!
+        val productID = listOfProductsIDs[0]
+        val basePlanID = basePlanIDs[0]
+        Log.v(pluginName, "Starting purchase flow for $productID subscription")
+
+        // Before launching purchase flow, query product details.
+        val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(productID)
+                        .setProductType(ProductType.SUBS)
+                        .build()
+                )
+            )
+            .build()
+        // Querying details for subscription.
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) {
+                queryDetailsResult, productDetailsList ->
+            val returnDict = Dictionary() // from Godot type Dictionary
+            if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK) {
+                // Error getting details, say something to godot users.
+                Log.v(pluginName, "Error getting $productID subscription details")
+                returnDict["response_code"] = queryDetailsResult.responseCode
+                returnDict["debug_message"] = queryDetailsResult.debugMessage
+                emitSignal(queryProductDetailsErrorSignal.name, returnDict)
+            } else {
+                // Product details found successfully. Launch purchase flow.
+                Log.v(pluginName, "Details for subscription $productID found")
+                val productDetailsParamsList = listOf(
+                    BillingFlowParams.ProductDetailsParams.newBuilder().apply {
+                        // There can be only one!
+                        setProductDetails(productDetailsList[0])
+                        val offerDetails =
+                            productDetailsList[0].subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
+                        if (offerDetails != null) {
+                            setOfferToken(offerDetails.offerToken)
+                        } else {
+                            Log.v(
+                                pluginName,
+                                "Base Plan ID $basePlanID not found in $productID subscription"
+                            )
+                            returnDict["debug_message"] =
+                                "Base Plan ID $basePlanID not found in $productID subscription"
+                            emitSignal(purchaseErrorSignal.name, returnDict)
+                        }
+                    }.build()
+                )
+                val flowParams = BillingFlowParams
+                    .newBuilder()
+                    .setProductDetailsParamsList(productDetailsParamsList)
+                    // https://developer.android.com/google/play/billing/integrate#personalized-price
+                    .setIsOfferPersonalized(isOfferPersonalized)
+                    .build()
+
+                // Running subscription flow.
+                val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
+                if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    // Subscription successfully launched.
+                    // Result will be received in onPurchasesUpdated() method.
+                    Log.v(
+                        pluginName,
+                        "Subscription $productID with $basePlanID purchasing launched successfully"
+                    )
+                } else {
+                    // Error purchasing. Says something to Godot users.
+                    Log.v(pluginName, "$productID purchasing failed")
+                    returnDict["response_code"] = purchasingResult.responseCode
+                    returnDict["debug_message"] = purchasingResult.debugMessage
+                    returnDict["product_id"] = productID
+                    returnDict["base_plan_id"] = basePlanID
+                    emitSignal(purchaseErrorSignal.name, returnDict)
+                }
             }
         }
     }
