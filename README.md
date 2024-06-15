@@ -19,4 +19,8 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 ## Examples
 
-- Example of a script for working with a plugin
+- [Example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) of a script for working with a plugin
+
+## Step-by-step set up guide
+
+coming soon
