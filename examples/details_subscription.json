@@ -1,0 +1,55 @@
+{
+  "description": "Remove all ADs from app one one year.",
+  "hash_code": -1341575204,
+  "name": "Remove all ADs from app",
+  "product_id": "remove_ads_sub_01",
+  "product_type": "subs",
+  "subscription_offer_details": [
+    {
+      "base_plan_id": "remove-ads-on-mounth",
+      "installment_plan_details": {
+
+      },
+      "offer_id": null,
+      "offer_tags": [
+        "ads",
+        "mounth"
+      ],
+      "offer_token": "AbNbjn6TaIQy+qPjOjdLgFDKeSMVXjCx1DDgdhYNjVblNZ0d2GRCLJ/FWAFnIsPUe8NER3mp64JbMnUXORLfCMKLmc046GWIIdZy9jc=",
+      "pricing_phases": [
+        {
+          "billing_cycle_count": 0,
+          "billing_period": "P1M",
+          "formatted_price": "1,39 CA$",
+          "price_amount_micros": 1390000,
+          "price_currency_code": "CAD",
+          "recurrence_mode": 1
+        }
+      ]
+    },
+    {
+      "base_plan_id": "remove-ads-on-year",
+      "installment_plan_details": {
+
+      },
+      "offer_id": null,
+      "offer_tags": [
+        "ads",
+        "year"
+      ],
+      "offer_token": "AbNbjn4L6u7g6/hdXadrh8DN5gpEJ6Df9qwu9zvrwSSNpDZ/xwktiJ1668rLTaBQcC/cZsh6964WTWIjXPgIeoy7BACAMtaSi5nL",
+      "pricing_phases": [
+        {
+          "billing_cycle_count": 0,
+          "billing_period": "P1Y",
+          "formatted_price": "12,99 CA$",
+          "price_amount_micros": 12990000,
+          "price_currency_code": "CAD",
+          "recurrence_mode": 1
+        }
+      ]
+    }
+  ],
+  "title": "Remove all ADs from app (Circle catcher 2)",
+  "to_string": "ProductDetails{jsonString='{\"productId\":\"remove_ads_sub_01\",\"type\":\"subs\",\"title\":\"Remove all ADs from app (Circle catcher 2)\",\"name\":\"Remove all ADs from app\",\"description\":\"Remove all ADs from app one one year.\",\"localizedIn\":[\"en-US\"],\"skuDetailsToken\":\"AEuhp4ILup4nhJvTjaewXqded-BbLooEPhm9MvUQWBuQ27NI1U6D1cN7E6Yi_E8pMzqc\",\"subscriptionOfferDetails\":[{\"offerIdToken\":\"AbNbjn6TaIQy+qPjOjdLgFDKeSMVXjCx1DDgdhYNjVblNZ0d2GRCLJ\\/FWAFnIsPUe8NER3mp64JbMnUXORLfCMKLmc046GWIIdZy9jc=\",\"basePlanId\":\"remove-ads-on-mounth\",\"pricingPhases\":[{\"priceAmountMicros\":1390000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"1,39 CA$\",\"billingPeriod\":\"P1M\",\"recurrenceMode\":1}],\"offerTags\":[\"ads\",\"mounth\"]},{\"offerIdToken\":\"AbNbjn4L6u7g6\\/hdXadrh8DN5gpEJ6Df9qwu9zvrwSSNpDZ\\/xwktiJ1668rLTaBQcC\\/cZsh6964WTWIjXPgIeoy7BACAMtaSi5nL\",\"basePlanId\":\"remove-ads-on-year\",\"pricingPhases\":[{\"priceAmountMicros\":12990000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"12,99 CA$\",\"billingPeriod\":\"P1Y\",\"recurrenceMode\":1}],\"offerTags\":[\"ads\",\"year\"]}]}', parsedJson={\"productId\":\"remove_ads_sub_01\",\"type\":\"subs\",\"title\":\"Remove all ADs from app (Circle catcher 2)\",\"name\":\"Remove all ADs from app\",\"description\":\"Remove all ADs from app one one year.\",\"localizedIn\":[\"en-US\"],\"skuDetailsToken\":\"AEuhp4ILup4nhJvTjaewXqded-BbLooEPhm9MvUQWBuQ27NI1U6D1cN7E6Yi_E8pMzqc\",\"subscriptionOfferDetails\":[{\"offerIdToken\":\"AbNbjn6TaIQy+qPjOjdLgFDKeSMVXjCx1DDgdhYNjVblNZ0d2GRCLJ\\/FWAFnIsPUe8NER3mp64JbMnUXORLfCMKLmc046GWIIdZy9jc=\",\"basePlanId\":\"remove-ads-on-mounth\",\"pricingPhases\":[{\"priceAmountMicros\":1390000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"1,39 CA$\",\"billingPeriod\":\"P1M\",\"recurrenceMode\":1}],\"offerTags\":[\"ads\",\"mounth\"]},{\"offerIdToken\":\"AbNbjn4L6u7g6\\/hdXadrh8DN5gpEJ6Df9qwu9zvrwSSNpDZ\\/xwktiJ1668rLTaBQcC\\/cZsh6964WTWIjXPgIeoy7BACAMtaSi5nL\",\"basePlanId\":\"remove-ads-on-year\",\"pricingPhases\":[{\"priceAmountMicros\":12990000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"12,99 CA$\",\"billingPeriod\":\"P1Y\",\"recurrenceMode\":1}],\"offerTags\":[\"ads\",\"year\"]}]}, productId='remove_ads_sub_01', productType='subs', title='Remove all ADs from app (Circle catcher 2)', productDetailsToken='AEuhp4ILup4nhJvTjaewXqded-BbLooEPhm9MvUQWBuQ27NI1U6D1cN7E6Yi_E8pMzqc', subscriptionOfferDetails=[com.android.billingclient.api.ProductDetails$SubscriptionOfferDetails@e3d71fe, com.android.billingclient.api.ProductDetails$SubscriptionOfferDetails@1591d5f]}"
+}

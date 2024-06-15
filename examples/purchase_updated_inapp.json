@@ -1,0 +1,20 @@
+{
+  "account_identifiers": null,
+  "developer_payload": "",
+  "hash_code": 347836291,
+  "is_acknowledged": false,
+  "is_auto_renewing": false,
+  "order_id": "GPA.3386-6160-2931-85348",
+  "original_json": "{\"orderId\":\"GPA.3386-6160-2931-85348\",\"packageName\":\"org.godotengine.circlecatcher\",\"productId\":\"blue_skin_v1\",\"purchaseTime\":1718385548694,\"purchaseState\":0,\"purchaseToken\":\"hbecfldgjckddhaefmoomgdm.AO-J1OxmTkHVIaH0xGRLKk53AvFGuj2gwKmldZ6YLAdfKTigvqE306j3cW38a_H8zd-DTr5-ZB-rWSbqUZFRuDpT3rGQyiicFN4e8VNd6qv4NWjc7L1opSU\",\"quantity\":1,\"acknowledged\":false}",
+  "package_name": "org.godotengine.circlecatcher",
+  "pending_purchase_update": null,
+  "products": [
+    "blue_skin_v1"
+  ],
+  "purchase_state": 1,
+  "purchase_time": 1718385548694,
+  "purchase_token": "hbecfldgjckddhaefmoomgdm.AO-J1OxmTkHVIaH0xGRLKk53AvFGuj2gwKmldZ6YLAdfKTigvqE306j3cW38a_H8zd-DTr5-ZB-rWSbqUZFRuDpT3rGQyiicFN4e8VNd6qv4NWjc7L1opSU",
+  "quantity": 1,
+  "signature": "A0NkdhKPTSubDkUgu9HzVvJ33G0bZ18a/LX5NoK5WHXZmO3qznf8GESw/bda1A76CbX0PpiDaDIWGLK8b0huTmmdxSL+2wjw+LnaABc+hSf6KjD8Zmu/doMA6ScihP9Ilv9/t18S8JFpJdvUOUvKMs//EP0bxvmxJbAin+Y8QUdKuL7Bgj4NY75Vka4UWbqApyGdRYOkU5R4DZXV8zhaeRbbbevOmWd4AgLctJv+ZhVSeWyY9g5ONlPutVPPg3nwz4RBFL49yIarXGKvaZicM1weqJX5rtV/H/2fTSTUqp/vqigZEDYGI/MzLQw8M6GjI2qUSuFf8MMu+Pvl5zPW4A==",
+  "to_string": "Purchase. Json: {\"orderId\":\"GPA.3386-6160-2931-85348\",\"packageName\":\"org.godotengine.circlecatcher\",\"productId\":\"blue_skin_v1\",\"purchaseTime\":1718385548694,\"purchaseState\":0,\"purchaseToken\":\"hbecfldgjckddhaefmoomgdm.AO-J1OxmTkHVIaH0xGRLKk53AvFGuj2gwKmldZ6YLAdfKTigvqE306j3cW38a_H8zd-DTr5-ZB-rWSbqUZFRuDpT3rGQyiicFN4e8VNd6qv4NWjc7L1opSU\",\"quantity\":1,\"acknowledged\":false}"
+}

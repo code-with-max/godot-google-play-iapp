@@ -1,0 +1,14 @@
+{
+  "description": "Beautiful sky-blue skin for circle catcher.",
+  "hash_code": 1042382311,
+  "name": "Blue skin",
+  "one_time_purchase_offer_details": {
+    "formatted_price": "1,29 CA$",
+    "price_amount_micros": 1290000,
+    "price_currency_code": "CAD"
+  },
+  "product_id": "blue_skin_v1",
+  "product_type": "inapp",
+  "title": "Blue skin (Circle catcher 2)",
+  "to_string": "ProductDetails{jsonString='{\"productId\":\"blue_skin_v1\",\"type\":\"inapp\",\"title\":\"Blue skin (Circle catcher 2)\",\"name\":\"Blue skin\",\"description\":\"Beautiful sky-blue skin for circle catcher.\",\"localizedIn\":[\"en-US\"],\"skuDetailsToken\":\"AEuhp4Ik3jZtacec7suJ2k1UwRNw1TAURMDxhuBdJVAvUszGtiXhi5IouYzz023Wz_3n9L-VCkaEOvo=\",\"oneTimePurchaseOfferDetails\":{\"priceAmountMicros\":1290000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"1,29 CA$\",\"offerIdToken\":\"AbNbjn6qd8NV87Re\\/Gu8BaDG15I1ttYTPGQklCYCEKswhA2AYrbJgEaLxvr8PzAhsQYGGMuXkxbh\\/8kb2wySL7bDGg==\"}}', parsedJson={\"productId\":\"blue_skin_v1\",\"type\":\"inapp\",\"title\":\"Blue skin (Circle catcher 2)\",\"name\":\"Blue skin\",\"description\":\"Beautiful sky-blue skin for circle catcher.\",\"localizedIn\":[\"en-US\"],\"skuDetailsToken\":\"AEuhp4Ik3jZtacec7suJ2k1UwRNw1TAURMDxhuBdJVAvUszGtiXhi5IouYzz023Wz_3n9L-VCkaEOvo=\",\"oneTimePurchaseOfferDetails\":{\"priceAmountMicros\":1290000,\"priceCurrencyCode\":\"CAD\",\"formattedPrice\":\"1,29 CA$\",\"offerIdToken\":\"AbNbjn6qd8NV87Re\\/Gu8BaDG15I1ttYTPGQklCYCEKswhA2AYrbJgEaLxvr8PzAhsQYGGMuXkxbh\\/8kb2wySL7bDGg==\"}}, productId='blue_skin_v1', productType='inapp', title='Blue skin (Circle catcher 2)', productDetailsToken='AEuhp4Ik3jZtacec7suJ2k1UwRNw1TAURMDxhuBdJVAvUszGtiXhi5IouYzz023Wz_3n9L-VCkaEOvo=', subscriptionOfferDetails=null}"
+}
