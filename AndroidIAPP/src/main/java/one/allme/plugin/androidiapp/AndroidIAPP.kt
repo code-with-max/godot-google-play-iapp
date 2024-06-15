@@ -150,13 +150,14 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
 
 
+    // TODO Type mismatch. Check if it is possible/useful
     // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ConnectionState
-    @get:UsedByGodot
-    val connectionState: Int
-        get() {
-            Log.v(pluginName, "Connection state: ${billingClient.connectionState}")
-            return billingClient.connectionState
-        }
+//    @get:UsedByGodot
+//    val connectionState: Int
+//        get() {
+//            Log.v(pluginName, "Connection state: ${billingClient.connectionState}")
+//            return billingClient.connectionState
+//        }
 
 
     // Just say hello func
@@ -196,6 +197,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
 
     // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ProductType
+    // productType should be ProductType.INAPP or ProductType.SUBS
+    // TODO Default value of productType not setting. Need function overloading for fixing
     @UsedByGodot
     private fun queryPurchases(productType: String = ProductType.INAPP) {
         val params = QueryPurchasesParams
@@ -273,7 +276,6 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
     @UsedByGodot
     private fun purchase(listOfProductsIDs: Array<String>,
-                         productType: String,
                          isOfferPersonalized: Boolean) {
 
         val activity = activity!!
@@ -288,7 +290,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(productID)
-                        .setProductType(productType)
+                        .setProductType(ProductType.INAPP)
                         .build()
                 )
             )
@@ -310,12 +312,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                         BillingFlowParams.ProductDetailsParams.newBuilder().apply {
                             // There can be only one!
                             setProductDetails(productDetailsList[0])
-                            val offerDetails = productDetailsList[0].subscriptionOfferDetails?.get(0)
-                            Log.v(pluginName, "Offer details token: ${offerDetails?.offerToken}")
-                            if (offerDetails != null) {
-                                // Optional, setting offer token only for subscriptions.
-                                setOfferToken(offerDetails.offerToken)
-                            }
+//                            val offerDetails = productDetailsList[0].subscriptionOfferDetails?.get(0)
+//                            Log.v(pluginName, "Offer details token: ${offerDetails?.offerToken}")
+//                            if (offerDetails != null) {
+//                                // Optional, setting offer token only for subscriptions.
+//                                setOfferToken(offerDetails.offerToken)
+//                            }
                         }.build())
                 val flowParams = BillingFlowParams
                     .newBuilder()
@@ -329,20 +331,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                 if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     // Purchasing successfully launched.
                     // Result will be received in onPurchasesUpdated() method.
-                    when (productType) {
-                        ProductType.INAPP -> {
-                            Log.v(pluginName, "Product $productID purchasing launched successfully")
-                        }
-                        ProductType.SUBS -> {
-                            Log.v(pluginName, "Subscription $productID purchasing launched successfully")
-                        }
-                        else -> {
-                            Log.v(pluginName, "Untyped $productID purchasing launched successfully :)")
-                        }
-                    }
-                    returnDict["response_code"] = purchasingResult.responseCode
-                    returnDict["product_id"] = productID
-                    emitSignal(purchaseSignal.name, returnDict)
+                    Log.v(pluginName, "Product $productID purchasing launched successfully")
                 } else {
                     // Error purchasing. Says something to Godot users.
                     Log.v(pluginName, "$productID purchasing failed")
@@ -494,7 +483,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
     // Acknowledge purchase using Kotlin coroutines
     // Kotlin coroutines are not supported in the current version of Godot (4.2).
-    // java.lang.NoSuchMethodError: no non-static method "Lone/allme/plugin/androidiapp/AndroidIAPP;.acknowledgePurchaseKT
+    // " java.lang.NoSuchMethodError: no non-static method "
     // Use this feature in later versions.
     //
 //    @UsedByGodot
@@ -543,7 +532,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.consumeAsync(consumeParams) { billingResult, purchaseToken ->
             val returnDict = Dictionary() // from Godot type Dictionary
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchase $purchaseToken consumed successfully")
+                Log.v(pluginName, "Purchase consumed successfully: $purchaseToken")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseConsumedSignal.name, returnDict)
@@ -568,7 +557,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             val returnDict = Dictionary() // from Godot type Dictionary
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchase $purchaseToken acknowledged successfully")
+                Log.v(pluginName, "Purchase acknowledged successfully: $purchaseToken")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseAcknowledgedSignal.name, returnDict)
