@@ -27,7 +27,6 @@ import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
 
 
-
 class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     PurchasesUpdatedListener,
     BillingClientStateListener {
@@ -45,36 +44,73 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         .build()
 
 
-
-
     // Signals
     // Echo
-    private val helloResponseSignal = SignalInfo("helloResponse", String::class.java)
+    private val helloResponseSignal = SignalInfo(
+        "helloResponse", String::class.java,
+        )
+
     // Information
-    private val startConnectionSignal = SignalInfo("startConnection")
-    private val connectedSignal = SignalInfo("connected")
-    private val disconnectedSignal = SignalInfo("disconnected")
+    private val startConnectionSignal = SignalInfo(
+        "startConnection",
+        )
+    private val connectedSignal = SignalInfo(
+        "connected",
+        )
+    private val disconnectedSignal = SignalInfo(
+        "disconnected",
+        )
+
     // Query purchases
-    private val queryPurchasesSignal = SignalInfo("query_purchases", Dictionary::class.java)
-    private val queryPurchasesErrorSignal = SignalInfo("query_purchases_error", Dictionary::class.java)
+    private val queryPurchasesSignal = SignalInfo(
+        "query_purchases", Dictionary::class.java,
+        )
+    private val queryPurchasesErrorSignal = SignalInfo(
+        "query_purchases_error", Dictionary::class.java,
+        )
+
     // Query product details
-    private val queryProductDetailsSignal = SignalInfo("query_product_details", Dictionary::class.java)
-    private val queryProductDetailsErrorSignal = SignalInfo("query_product_details_error", Dictionary::class.java)
+    private val queryProductDetailsSignal = SignalInfo(
+        "query_product_details", Dictionary::class.java,
+        )
+    private val queryProductDetailsErrorSignal = SignalInfo(
+        "query_product_details_error", Dictionary::class.java,
+        )
+
     // Purchase processing
-    private val purchaseSignal = SignalInfo("purchase", Dictionary::class.java)
-    private val purchaseErrorSignal = SignalInfo("purchase_error", Dictionary::class.java)
+    private val purchaseSignal = SignalInfo(
+        "purchase", Dictionary::class.java,
+        )
+    private val purchaseErrorSignal = SignalInfo(
+        "purchase_error", Dictionary::class.java,
+        )
+
     // Purchase updating
-    private val purchaseUpdatedSignal = SignalInfo("purchase_updated", Dictionary::class.java)
-    private val purchaseCancelledSignal = SignalInfo("purchase_canceled", Dictionary::class.java)
-    private val purchaseUpdatedErrorSignal = SignalInfo("purchase_update_error", Dictionary::class.java)
+    private val purchaseUpdatedSignal = SignalInfo(
+        "purchase_updated", Dictionary::class.java,
+        )
+    private val purchaseCancelledSignal = SignalInfo(
+        "purchase_canceled", Dictionary::class.java,
+        )
+    private val purchaseUpdatedErrorSignal = SignalInfo(
+        "purchase_update_error", Dictionary::class.java,
+        )
+
     // Purchases consuming
-    private val purchaseConsumedSignal = SignalInfo("purchase_consumed", Dictionary::class.java)
-    private val purchaseConsumedErrorSignal = SignalInfo("purchase_consumed_error", Dictionary::class.java)
+    private val purchaseConsumedSignal = SignalInfo(
+        "purchase_consumed", Dictionary::class.java,
+        )
+    private val purchaseConsumedErrorSignal = SignalInfo(
+        "purchase_consumed_error", Dictionary::class.java,
+        )
+
     // Purchases acknowledge
-    private val purchaseAcknowledgedSignal = SignalInfo("purchase_acknowledged", Dictionary::class.java)
-    private val purchaseAcknowledgedErrorSignal = SignalInfo("purchase_acknowledged_error", Dictionary::class.java)
-
-
+    private val purchaseAcknowledgedSignal = SignalInfo(
+        "purchase_acknowledged", Dictionary::class.java,
+        )
+    private val purchaseAcknowledgedErrorSignal = SignalInfo(
+        "purchase_acknowledged_error", Dictionary::class.java,
+        )
 
 
     override fun getPluginSignals(): Set<SignalInfo> {
@@ -84,23 +120,17 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             startConnectionSignal,
             connectedSignal,
             disconnectedSignal,
-
             queryPurchasesSignal,
             queryPurchasesErrorSignal,
-
             queryProductDetailsSignal,
             queryProductDetailsErrorSignal,
-
             purchaseSignal,
             purchaseErrorSignal,
-
             purchaseUpdatedSignal,
             purchaseCancelledSignal,
             purchaseUpdatedErrorSignal,
-
             purchaseConsumedSignal,
             purchaseConsumedErrorSignal,
-
             purchaseAcknowledgedSignal,
             purchaseAcknowledgedErrorSignal
         )
@@ -190,7 +220,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
 
     @UsedByGodot
-    private fun queryProductDetails(listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
+    private fun queryProductDetails(
+        listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
         val products = ArrayList<QueryProductDetailsParams.Product>()
 
         for (productID in listOfProductsIDs) {
@@ -210,7 +241,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Product details found")
                 returnDict["response_code"] = billingResult.responseCode
-                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
+                returnDict["product_details_list"] = IAPP_utils
+                    .convertProductDetailsListToArray(productDetailsList)
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
                 Log.v(pluginName, "No product details found")
