@@ -66,7 +66,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     // Purchase updating
     private val purchaseUpdatedSignal = SignalInfo("purchase_updated", Dictionary::class.java)
     private val purchaseCancelledSignal = SignalInfo("purchase_canceled", Dictionary::class.java)
-    private val purchaseUpdatedErrorSignal = SignalInfo("purchase_update_failed", Dictionary::class.java)
+    private val purchaseUpdatedErrorSignal = SignalInfo("purchase_update_error", Dictionary::class.java)
     // Purchases consuming
     private val purchaseConsumedSignal = SignalInfo("purchase_consumed", Dictionary::class.java)
     private val purchaseConsumedErrorSignal = SignalInfo("purchase_consumed_error", Dictionary::class.java)
