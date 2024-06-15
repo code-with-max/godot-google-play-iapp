@@ -13,7 +13,7 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 ## Installation
 
-1. Download the plugin from [GitHub](https://github.com/your-repo-url).
+1. Download the plugin from [GitHub](https://github.com/code-with-max/godot-google-play-iapp/releases).
 2. Place the plugin folder in the `res://addons/` directory.
 3. Enable the plugin in the project settings.
 
