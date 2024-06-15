@@ -58,8 +58,8 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     private val queryPurchasesSignal = SignalInfo("query_purchases", Dictionary::class.java)
     private val queryPurchasesErrorSignal = SignalInfo("query_purchases_error", Dictionary::class.java)
     // Query product details
-    private val queryProductDetailsSignal = SignalInfo("query_product_response", Dictionary::class.java)
-    private val queryProductDetailsErrorSignal = SignalInfo("query_product_response_error", Dictionary::class.java)
+    private val queryProductDetailsSignal = SignalInfo("query_product_details", Dictionary::class.java)
+    private val queryProductDetailsErrorSignal = SignalInfo("query_product_details_error", Dictionary::class.java)
     // Purchase processing
     private val purchaseSignal = SignalInfo("purchase", Dictionary::class.java)
     private val purchaseErrorSignal = SignalInfo("purchase_error", Dictionary::class.java)
