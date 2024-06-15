@@ -4,6 +4,10 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+        }
+    }
     namespace = "one.allme.plugin.androidiapp"
     compileSdk = 34
 
