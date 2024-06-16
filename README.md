@@ -25,7 +25,7 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 - Google Play Billing uses these three types of purchases:
   - Products that will be consumed.
-  - Products that will be purchased.
+  - Products that will be acknowledged.
   - Subscriptions that will be purchased and consumed.
 
   And their IDs should be passed to the function as a list of String elements. Even if there is only one ID, it still needs to be wrapped in a list.
@@ -34,7 +34,7 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
   - getProductId -> `product_id`
   - getSubscriptionOfferDetails -> `subscription_offer_details`
 
-  See full variant of response [here](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json)
+  See the variant of response [here](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json)
 
 - The plugin also includes all standard [BillingResponseCode](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.BillingResponseCode) messages as a key in the dictionary called `response_code`. Additionally, it adds a `debug_message` key if the code indicates an error.
 
