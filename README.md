@@ -21,6 +21,24 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 - [Example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) of a script for working with a plugin
 
+## Before start
+
+- Google Play Billing uses these three types of products, and their IDs should be passed to the function as a list of String elements. Even if there is only one ID, it still needs to be wrapped in a list.
+
+- All public methods and values returned by Google Play Billing are presented as a typed Godot dictionary. All dictionary keys represent the names of public methods written in snake_case style.
+  - getProductId -> product_id
+  - getSubscriptionOfferDetails -> subscription_offer_details
+  
+  See full variant of response [here](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json)
+
 ## Step-by-step set up guide
 
-coming soon
+### Connecting to the Google Play Billing Library
+
+### Requesting a list of products and subscriptions
+
+### Handling purchases and subscriptions
+
+### Confirming and consuming purchases
+
+### Handling errors and purchase states
