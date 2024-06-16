@@ -1,4 +1,4 @@
-# AndroidIAPP Godot Plugin
+d# AndroidIAPP Godot Plugin
 
 AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
 
@@ -13,9 +13,15 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 ## Installation
 
-1. Download the plugin from [GitHub](https://github.com/code-with-max/godot-google-play-iapp/releases).
-2. Place the plugin folder in the `res://addons/` directory.
-3. Enable the plugin in the project settings.
+- Install the plugin using Godot [Asset Library](https://godotengine.org/asset-library/asset/3068).
+
+  or
+
+- Download the plugin from [GitHub](https://github.com/code-with-max/godot-google-play-iapp/releases).
+- And place the unpacked plugin folder in the `res://addons/` directory of the project.
+
+[!NOTE]
+Dont forget to enable the plugin in the project settings.
 
 ## Examples
 
@@ -37,6 +43,52 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
   See the variant of response [here](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json)
 
 - The plugin also includes all standard [BillingResponseCode](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.BillingResponseCode) messages as a key in the dictionary called `response_code`. Additionally, it adds a `debug_message` key if the code indicates an error.
+
+## Signals Descriptions (Event listeners)
+
+### Test signal
+
+Returns a String value.
+
+`helloResponse`: Emitted when a response to a hello message is received.
+
+### Information signals
+
+Does not return anything.
+
+`startConnection`: Emitted when the connection to Google Play Billing starts.
+
+`connected`: Emitted when successfully connected to Google Play Billing.
+
+`disconnected`: Emitted when disconnected from Google Play Billing.
+
+## Billing signals
+
+Returns a Dictionary of Godot type.
+
+`query_purchases`: Emitted when a query for purchases is successful.
+
+`query_purchases_error`: Emitted when there is an error querying purchases.
+
+`query_product_details`: Emitted when a query for product details is successful.
+
+`query_product_details_error`: Emitted when there is an error querying product details.
+
+`purchase_error`: Emitted when there is an error during the purchase process.
+
+`purchase_updated`: Emitted when the purchase information is updated.
+
+`purchase_cancelled`: Emitted when a purchase is cancelled.
+
+`purchase_update_error`: Emitted when there is an error updating the purchase information.
+
+`purchase_consumed`: Emitted when a purchase is successfully consumed.
+
+`purchase_consumed_error`: Emitted when there is an error consuming the purchase.
+
+`purchase_acknowledged`: Emitted when a purchase is successfully acknowledged.
+
+`purchase_acknowledged_error`: Emitted when there is an error acknowledging the purchase.
 
 ## Step-by-step set up guide
 
