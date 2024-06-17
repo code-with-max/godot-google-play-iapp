@@ -1,4 +1,4 @@
-d# AndroidIAPP Godot Plugin
+# AndroidIAPP Godot Plugin
 
 AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
 
@@ -48,13 +48,13 @@ Dont forget to enable the plugin in the project settings.
 
 ### Test signal
 
-Returns a String value.
+*Returns a String value.*
 
 `helloResponse`: Emitted when a response to a hello message is received.
 
 ### Information signals
 
-Does not return anything.
+*Does not return anything.*
 
 `startConnection`: Emitted when the connection to Google Play Billing starts.
 
@@ -62,9 +62,9 @@ Does not return anything.
 
 `disconnected`: Emitted when disconnected from Google Play Billing.
 
-## Billing signals
+### Billing signals
 
-Returns a Dictionary of Godot type.
+*Returns a Dictionary of Godot type.*
 
 `query_purchases`: Emitted when a query for purchases is successful.
 
@@ -89,6 +89,25 @@ Returns a Dictionary of Godot type.
 `purchase_acknowledged`: Emitted when a purchase is successfully acknowledged.
 
 `purchase_acknowledged_error`: Emitted when there is an error acknowledging the purchase.
+
+## Functions
+
+`startConnection()`: Starts the connection to Google Play Billing.
+
+Emits:
+
+- `startConnection` signal when connection is started.
+- `connected` signal if connection is successful.
+
+`isReady()` : Checks if the connection to Google Play Billing is ready and returns a boolean value.
+
+`sayHello()` : Sends a hello message from the plugin.
+
+*For testing purposes, not recommended in production.*
+
+- Emit `helloResponse` signal
+- Sending Log.v message to the console
+- Display a system toast.
 
 ## Step-by-step set up guide
 
