@@ -66,52 +66,40 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 
 *Returns a Dictionary of Godot type.*
 
-`query_purchases`  
-Emitted when a query for purchases is successful.  
+`query_purchases`: Emitted when a query for purchases is successful.  
 Returns a dictionary with purchases or subscriptions.
 
-`query_purchases_error`  
-Emitted when there is an error querying purchases.  
+`query_purchases_error`: Emitted when there is an error querying purchases.  
 Returns a dictionary with error codes and debug message.
 
-`query_product_details`  
-Emitted when a query for product details is successful.  
+`query_product_details`: Emitted when a query for product details is successful.  
 Returns a dictionary with product or subscription details.
 
-`query_product_details_error`  
-Emitted when there is an error querying product details.  
+`query_product_details_error`: Emitted when there is an error querying product details.  
 Returns a dictionary with error codes and debug message.
 
-`purchase_error`  
-Emitted when there is an error during the purchase process.  
+`purchase_error`: Emitted when there is an error during the purchase process.  
 Returns a dictionary with error codes and debug message.
 
-`purchase_updated`  
-Emitted when the purchase information is updated.  
+`purchase_updated`: Emitted when the purchase information is updated.  
 Returns a dictionary with purchases or subscriptions.
 
-`purchase_cancelled`  
-Emitted when a purchase is cancelled.  
+`purchase_cancelled`: Emitted when a purchase is cancelled.  
 Returns a dictionary with error codes and debug message.
 
-`purchase_update_error`  
-Emitted when there is an error updating the purchase information.  
+`purchase_update_error`: Emitted when there is an error updating the purchase information.  
 Returns a dictionary with error codes and debug message.
 
-`purchase_consumed`  
-Emitted when a purchase is successfully consumed.  
+`purchase_consumed`: Emitted when a purchase is successfully consumed.  
 Returns a dictionary with confirmation message.
 
-`purchase_consumed_error`  
-Emitted when there is an error consuming the purchase.  
+`purchase_consumed_error`: Emitted when there is an error consuming the purchase.  
 Returns a dictionary with error codes and debug message.
 
-`purchase_acknowledged`  
-Emitted when a purchase is successfully acknowledged.  
+`purchase_acknowledged`: Emitted when a purchase is successfully acknowledged.  
 Returns a dictionary with confirmation message.
 
-`purchase_acknowledged_error`  
-Emitted when there is an error acknowledging the purchase.  
+`purchase_acknowledged_error`: Emitted when there is an error acknowledging the purchase.  
 Returns a dictionary with error codes and debug message.
 
 ## Functions
@@ -137,7 +125,6 @@ productType: "inapp" for products or "subs" for subscriptions.
 Handling purchases made [outside your app](https://developer.android.com/google/play/billing/integrate#ooap).  
 > [!NOTE]
 > I recommend calling it every time you establish a connection with the billing service.
-
 
 ## Step-by-step set up guide
 
