@@ -160,10 +160,10 @@ See an example of [product](https://github.com/code-with-max/godot-google-play-i
 
 Emit signals:
 
-- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful. [Example of response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json)
-`query_product_details_error`: If an error occurred while receiving information about the product being purchased.
+- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful. [Example of response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json)  
+`query_product_details_error`: If an error occurred while receiving information about the product being purchased.  
 - `purchase_error`: If there is an error during the purchase process.  
-- `purchase_cancelled`: If a purchase is cancelled by the user.
+- `purchase_cancelled`: If a purchase is cancelled by the user.  
 - `purchase_update_error`: If there is an error updating the purchase information.  
 
 > [!IMPORTANT] Do not forget consume or acknowledge the purchase.
