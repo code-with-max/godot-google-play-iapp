@@ -30,9 +30,9 @@ AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plug
 ## Before start
 
 - Google Play Billing uses these three types of purchases:
-  - Products that will be consumed.
-  - Products that will be acknowledged.
-  - Subscriptions that will be purchased and consumed.
+  - Products that will be consumed ("inapp").
+  - Products that will be acknowledged ("inapp").
+  - Subscriptions that will be purchased and consumed ("subs").
 
   And their IDs should be passed to the function as a list of String elements. Even if there is only one ID, it still needs to be wrapped in a list.
 
@@ -104,15 +104,15 @@ Returns a dictionary with error codes and debug message.
 
 ## Functions
 
-`startConnection()`  
-Starts the connection to Google Play Billing, emit signals:
+`startConnection()`: Starts the connection to Google Play Billing, emit signals:
 
 - `startConnection` signal when connection is started.
-- `connected` signal if connection is successful.
+- `connected` signal if connection is successful.  
 
-`isReady()`  
-Checks if the connection to Google Play Billing is ready and returns a boolean value.
+---
+`isReady()`: Checks if the connection to Google Play Billing is ready and returns a boolean value.
 
+---
 `sayHello()` : Sends a hello message from the plugin.  
 *For testing purposes, not recommended in production.*  
 
@@ -120,11 +120,36 @@ Checks if the connection to Google Play Billing is ready and returns a boolean v
 - Sending Log.v message to the console
 - Display a system toast.
 
+---
 `queryPurchases(productType: String)`  
-productType: "inapp" for products or "subs" for subscriptions.  
+productType: **"inapp"** for products or **"subs"** for subscriptions.  
 Handling purchases made [outside your app](https://developer.android.com/google/play/billing/integrate#ooap).  
 > [!NOTE]
 > I recommend calling it every time you establish a connection with the billing service.
+
+Emit signals:
+
+- `query_purchases`: if a query for purchases is successful.  
+- `query_purchases_error`: if there is an error querying purchases.
+
+---
+`queryProductDetails(productId: List<String>, productType: String)`: This function queries product of subscriptions details from Google Play Billing.  
+`productId`: ID of the product or subscription wrapped in a list.  
+`productType`: **"inapp"** for products or **"subs"** for subscriptions.
+
+> [!NOTE]
+> You must pass the product type as a parameter. If you pass the wrong product type with the product IDs, like using subscription IDs with "inapp", it won't work and the function will return an error.
+
+Emit signals:
+
+- `query_product_details`: If a query for product details is successful.  
+- `query_product_details_error`: If error :)  
+
+---
+[!NOTE]
+> This is where the biggest difference from the official plugin begins.
+> If you have never used the official plugin before, you don't need to worry.
+> But if you are planning to switch to this version, you should know that I have implemented two separate functions for buying products and subscribing to plans.
 
 ## Step-by-step set up guide
 
