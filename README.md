@@ -166,7 +166,8 @@ Emit signals:
 - `purchase_cancelled`: If a purchase is cancelled by the user.  
 - `purchase_update_error`: If there is an error updating the purchase information.  
 
-> [!IMPORTANT] Do not forget consume or acknowledge the purchase.
+> [!IMPORTANT]
+> Do not forget consume or acknowledge the purchase.
 
 ---
 
