@@ -148,7 +148,7 @@ Emit signals:
 See an example of [product](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json) details answer or [subscription](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_subscription.json).
 
 ---
-> [!IMPORTANT]
+> [!NOTE]
 > This is where the biggest difference from the official plugin begins.
 > If you have never used the old plugin before, you don't need to worry.
 > But if you are planning to switch to this version, you should know that I have implemented two separate functions for buying products and subscribing to plans.
