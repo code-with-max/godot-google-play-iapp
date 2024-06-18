@@ -143,13 +143,32 @@ Emit signals:
 Emit signals:
 
 - `query_product_details`: If a query for product details is successful.  
-- `query_product_details_error`: If error :)  
+- `query_product_details_error`: If error :)
+
+See an example of [product](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json) details answer or [subscription](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_subscription.json).
 
 ---
-[!NOTE]
+> [!IMPORTANT]
 > This is where the biggest difference from the official plugin begins.
-> If you have never used the official plugin before, you don't need to worry.
+> If you have never used the old plugin before, you don't need to worry.
 > But if you are planning to switch to this version, you should know that I have implemented two separate functions for buying products and subscribing to plans.
+
+---
+`purchase(id: List<String>, is_personalized: bool)`: purchase a product from Google Play Billing.  
+`id`: ID of the product or subscription wrapped in a list.  
+`is_personalized`: This is to ensure compliance with the [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528), you can clarify this [here](https://developer.android.com/google/play/billing/integrate#personalized-price), but if you don't understand why, just set it to `false`.
+
+Emit signals:
+
+- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful. [Example of response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json)
+`query_product_details_error`: If an error occurred while receiving information about the product being purchased.
+- `purchase_error`: If there is an error during the purchase process.  
+- `purchase_cancelled`: If a purchase is cancelled by the user.
+- `purchase_update_error`: If there is an error updating the purchase information.  
+
+> [!IMPORTANT] Do not forget consume or acknowledge the purchase.
+
+---
 
 ## Step-by-step set up guide
 
