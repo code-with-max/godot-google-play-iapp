@@ -179,8 +179,8 @@ Emit signals:
 
 Emit signals:
 
-- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful. [Example of response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_subs.json)  
-`query_product_details_error`: If an error occurred while receiving information about the subscription being purchased.  
+- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful.  
+- `query_product_details_error`: If an error occurred while receiving information about the subscription being purchased.  
 - `purchase_error`: If there is an error during the purchase process.  
 - `purchase_cancelled`: If a purchase is cancelled by the user.  
 - `purchase_update_error`: If there is an error updating the purchase information.  
