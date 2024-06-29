@@ -2,6 +2,8 @@
 
 AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
 
+A simple game to demonstrate the work of purchases and subscriptions with different tariff plans: [Circle Сatcher 2](https://play.google.com/store/apps/details?id=org.godotengine.circlecatcher)
+
 ## Features
 
 - Connect to Google Play Billing.
