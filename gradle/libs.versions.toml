@@ -10,6 +10,7 @@ material = "1.12.0"
 godot = "4.2.2.stable"
 billingKtx = "7.0.0"
 billing = "7.0.0"
+godotVersion = "4.3.0.stable"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -21,6 +22,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 godot = { group = "org.godotengine", name = "godot", version.ref = "godot" }
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billingKtx" }
 billing = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
+godotengine-godot = { group = "org.godotengine", name = "godot", version.ref = "godotVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
