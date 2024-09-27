@@ -28,6 +28,7 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 ## Examples
 
 - [Example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) of a script for working with a plugin
+- Another [Example](https://gist.github.com/code-with-max/56881cbb3796a19a68d8eabd819d6ff7)
 
 ## Before start
 
