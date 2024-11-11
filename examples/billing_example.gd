@@ -12,6 +12,10 @@
 
 extends Node
 
+signal product_details_received(product_id: String, price: String)
+signal purchase_successful(product_id: String)
+signal purchase_failed(product_id: String, error: Dictionary)
+
 
 # https://developer.android.com/reference/com/android/billingclient/api/Purchase.PurchaseState
 enum purchaseState {
@@ -160,13 +164,15 @@ func _on_hello_response(response) -> void:
 
 
 func query_product_details(response) -> void:
-	for i in response["product_details_list"].size():
-		var product = response["product_details_list"][i]
-		print(JSON.stringify(product["product_id"], "  "))
+	for product in response["product_details_list"]:
+		#var product = response["product_details_list"][i]
+		#print(JSON.stringify(product["product_id"], "  "))
+		var product_id = product["product_id"]
+		var price = product["one_time_purchase_offer_details"]["formatted_price"]
+		product_details_received.emit(product_id, price)
 		#
 		# Handle avaible for purchase product details here
 		#
-
 
 func _on_query_purchases(response) -> void:
 	print("on_query_Purchases_response: ")

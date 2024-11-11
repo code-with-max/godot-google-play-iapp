@@ -25,6 +25,24 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 > [!NOTE]
 > Dont forget to enable the plugin in the project settings.
 
+## SIMPLE DEBUG
+
+ - Make sure this plugin is activate in Project > Project Settings > Plugins
+ - After you install the plugins, Check the AndroidIAPP.gd, make sure the path of .aar file is right 
+
+ `if debug:
+			return PackedStringArray(["AndroidIAPP-debug.aar"])
+		else:
+			return PackedStringArray(["AndroidIAPP-release.aar"])`
+
+ - this is just a billing helper file, you need something like this (https://gist.github.com/nitish800/60a1f3b6e746805b67a68395ca8f4ca6) and actually run this as autoload
+
+ - Don't forgot to add this permission,
+ com.android.vending.BILLING
+ com.google.android.gms.permission.AD_ID
+
+ You can add in Project > Export > Permissions > Custom Permissions
+
 ## Examples
 
 - [Example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) of a script for working with a plugin
