@@ -9,13 +9,14 @@ android {
         }
     }
     namespace = "one.allme.plugin.androidiapp"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        // targetSdk = 35
     }
 
     buildTypes {
@@ -34,6 +35,8 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    buildToolsVersion = "35.0.0"
+    ndkVersion = "28.0.13004108"
 }
 
 dependencies {
@@ -42,7 +45,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.billing.ktx)
-    implementation(libs.billing)
     implementation(libs.godotengine.godot)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
