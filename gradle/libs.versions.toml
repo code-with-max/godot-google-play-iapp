@@ -7,22 +7,22 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
-godot = "4.2.2.stable"
+godot = "4.4.1.stable"
 billingKtx = "7.1.1"
-billing = "7.0.0"
-godotVersion = "4.3.0.stable"
+billing = "7.1.1"
+godotVersion = "4.4.1.stable"
 
 [libraries]
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.16.0" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.7.0" }
+material = { group = "com.google.android.material", name = "material", version = "1.12.0" }
 godot = { group = "org.godotengine", name = "godot", version.ref = "godot" }
-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billingKtx" }
+billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version = "7.1.1" }
 billing = { group = "com.android.billingclient", name = "billing", version.ref = "billingKtx" }
-godotengine-godot = { group = "org.godotengine", name = "godot", version.ref = "godotVersion" }
+godotengine-godot = { group = "org.godotengine", name = "godot", version = "4.4.1.stable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
