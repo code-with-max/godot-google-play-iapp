@@ -9,15 +9,13 @@ android {
         }
     }
     namespace = "one.allme.plugin.androidiapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
-
+        targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-        // targetSdk = 35
-        // targetSdk = 35
     }
 
     buildTypes {
@@ -36,8 +34,6 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    buildToolsVersion = "36.0.0"
-    ndkVersion = "28.0.13004108"
 }
 
 dependencies {
