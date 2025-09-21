@@ -49,13 +49,14 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 //        .enablePendingPurchases()
 //        .setListener(this)
 //        .build()
+
     private lateinit var billingClient: BillingClient
 
 //    private val billingClient: BillingClient = BillingClient
 //        .newBuilder(activity!!)
 //        .setListener(this)
 //        .enablePendingPurchases(
-//            PendingPurchasesParams.newBuilder().build() // Простое создание без дополнительных методов
+//            PendingPurchasesParams.newBuilder().build()
 //        )
 //        .build()
 
@@ -214,6 +215,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
     @UsedByGodot
     private fun startConnection() {
+        Log.i(pluginName, "Starting billing service connection")
         if (activity == null) {
             Log.e(pluginName, "Cannot start BillingClient connection: Activity is null")
             val returnDict = Dictionary()
@@ -222,15 +224,28 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             emitSignal(disconnectedSignal.name, returnDict)
             return
         }
-        billingClient = BillingClient.newBuilder(activity!!)
-            .setListener(this)
-            .enablePendingPurchases(
-                PendingPurchasesParams.newBuilder().build()
-            )
-            .build()
-        billingClient.startConnection(this)
-        emitSignal(startConnectionSignal.name)
-        Log.v(pluginName, "Billing service start connection")
+        try {
+            Log.i(pluginName, "Creating billing client")
+            billingClient = BillingClient.newBuilder(activity!!)
+                .setListener(this)
+                .enablePendingPurchases(
+                    PendingPurchasesParams.newBuilder()
+                        .enableOneTimeProducts() // Явно включаем поддержку отложенных покупок для inapp
+                        .build()
+                )
+                .build()
+            Log.i(pluginName, "Billing client created successfully")
+            Log.i(pluginName, "Starting billing service connection")
+            billingClient.startConnection(this)
+            emitSignal(startConnectionSignal.name)
+            Log.i(pluginName, "Billing service connection initiated")
+        } catch (e: Exception) {
+            Log.e(pluginName, "Error initializing BillingClient: ${e.message}", e)
+            val returnDict = Dictionary()
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "BillingClient initialization failed: ${e.message}"
+            emitSignal(disconnectedSignal.name, returnDict)
+        }
     }
 //        billingClient.startConnection(this)
 //        emitSignal(startConnectionSignal.name)
