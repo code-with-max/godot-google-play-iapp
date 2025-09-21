@@ -7,10 +7,10 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.1"
 material = "1.13.0"
-godot = "4.4.1.stable"
+godot = "4.5.0.stable"
 billingKtx = "7.1.1"
 billing = "7.1.1"
-godotVersion = "4.4.1.stable"
+godotVersion = "4.5.0.stable"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
