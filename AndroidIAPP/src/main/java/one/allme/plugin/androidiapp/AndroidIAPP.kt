@@ -2,8 +2,15 @@ package one.allme.plugin.androidiapp
 
 import one.allme.plugin.androidiapp.utils.IAPP_utils
 
+import android.app.Activity
 import android.util.Log
 import android.widget.Toast
+
+import android.os.Handler
+import android.os.Looper
+import java.lang.Thread
+
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.ProductType
@@ -37,11 +44,20 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 //    private val acknowledgePurchaseResponseListener: AcknowledgePurchaseResponseListener = AcknowledgePurchaseResponseListener { billingResult -> }
 
 
-    private val billingClient: BillingClient = BillingClient
-        .newBuilder(activity!!)
-        .enablePendingPurchases()
-        .setListener(this)
-        .build()
+//    private val billingClient: BillingClient = BillingClient
+//        .newBuilder(activity!!)
+//        .enablePendingPurchases()
+//        .setListener(this)
+//        .build()
+    private lateinit var billingClient: BillingClient
+
+//    private val billingClient: BillingClient = BillingClient
+//        .newBuilder(activity!!)
+//        .setListener(this)
+//        .enablePendingPurchases(
+//            PendingPurchasesParams.newBuilder().build() // Простое создание без дополнительных методов
+//        )
+//        .build()
 
 
     // Signals
@@ -113,6 +129,19 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         )
 
 
+    private fun requireActivityForPurchase(
+        errorSignal: SignalInfo,
+        errorDict: Dictionary
+    ): Activity? {
+        return activity?.also {
+            Log.v(pluginName, "Activity available for purchase")
+        } ?: run {
+            Log.e(pluginName, "Cannot proceed: Activity is null")
+            emitSignal(errorSignal.name, errorDict)
+            null
+        }
+    }
+
     override fun getPluginSignals(): Set<SignalInfo> {
         Log.i(pluginName, "Registering plugin signals")
         return setOf(
@@ -163,20 +192,50 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     // Just say hello func
     @UsedByGodot
     fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
-        runOnUiThread {
+        if (activity == null) {
+            Log.e(pluginName, "Cannot show Toast: Activity is null")
+            val returnDict = Dictionary()
+            returnDict["debug_message"] = "Activity is null"
+            emitSignal(helloResponseSignal.name, "Error: Activity is null")
+            return
+        }
+        if (Looper.getMainLooper().thread !== Thread.currentThread()) {
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
+                emitSignal(helloResponseSignal.name, says)
+                Log.i(pluginName, says)
+            }
+        } else {
             Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
             emitSignal(helloResponseSignal.name, says)
             Log.i(pluginName, says)
         }
     }
 
-
     @UsedByGodot
     private fun startConnection() {
+        if (activity == null) {
+            Log.e(pluginName, "Cannot start BillingClient connection: Activity is null")
+            val returnDict = Dictionary()
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null"
+            emitSignal(disconnectedSignal.name, returnDict)
+            return
+        }
+        billingClient = BillingClient.newBuilder(activity!!)
+            .setListener(this)
+            .enablePendingPurchases(
+                PendingPurchasesParams.newBuilder().build()
+            )
+            .build()
         billingClient.startConnection(this)
         emitSignal(startConnectionSignal.name)
         Log.v(pluginName, "Billing service start connection")
     }
+//        billingClient.startConnection(this)
+//        emitSignal(startConnectionSignal.name)
+//        Log.v(pluginName, "Billing service start connection")
+//    }
 
 
     override fun onBillingServiceDisconnected() {
@@ -278,10 +337,28 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     private fun purchase(listOfProductsIDs: Array<String>,
                          isOfferPersonalized: Boolean) {
 
-        val activity = activity!!
+        val returnDict = Dictionary()
+        returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+        returnDict["debug_message"] = "Activity is null"
+        returnDict["product_id"] = if (listOfProductsIDs.isNotEmpty()) listOfProductsIDs[0] else ""
+
+        val activity = requireActivityForPurchase(purchaseErrorSignal, returnDict) ?: return
+
+        if (listOfProductsIDs.isEmpty()) {
+            Log.e(pluginName, "Cannot start purchase: Product ID list is empty")
+            returnDict["debug_message"] = "Product ID list is empty"
+            emitSignal(purchaseErrorSignal.name, returnDict)
+            return
+        }
 
         // There can be only one!
         val productID = listOfProductsIDs[0]
+        if (productID.isBlank()) {
+            Log.e(pluginName, "Cannot start purchase: Product ID is blank")
+            returnDict["debug_message"] = "Product ID is blank"
+            emitSignal(purchaseErrorSignal.name, returnDict)
+            return
+        }
         Log.v(pluginName, "Starting purchase flow for $productID product")
 
         // Before launching purchase flow, query product details.

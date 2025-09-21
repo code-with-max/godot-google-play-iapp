@@ -1,17 +1,15 @@
 # AndroidIAPP Godot Plugin
 
-AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
+AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7.1.1. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
 
-A simple game to demonstrate the work of purchases and subscriptions with different tariff plans: [Circle Сatcher 2](https://play.google.com/store/apps/details?id=org.godotengine.circlecatcher)
+A simple game to demonstrate the work of purchases and subscriptions with different tariff plans: [Circle Catcher 2](https://play.google.com/store/apps/details?id=org.godotengine.circlecatcher)
 
 ## Features
 
 - Connect to Google Play Billing.
-- Query purchases.
-- Query product details.
+- Query purchases and product details.
 - Make purchases and subscriptions.
-- Update purchases.
-- Consume and acknowledge purchases.
+- Update, consume, and acknowledge purchases.
 
 ## Installation
 
@@ -20,223 +18,278 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
   or
 
 - Download the plugin from [GitHub](https://github.com/code-with-max/godot-google-play-iapp/releases).
-- And place the unpacked plugin folder in the `res://addons/` directory of the project.
+- Place the unpacked plugin folder in the `res://addons/` directory of your project.
 
 > [!NOTE]
-> Dont forget to enable the plugin in the project settings.
+> Don't forget to enable the plugin in `Project > Project Settings > Plugins`.
 
 ## SIMPLE DEBUG
 
- - Make sure this plugin is activate in Project > Project Settings > Plugins
- - After you install the plugins, Check the AndroidIAPP.gd, make sure the path of .aar file is right 
-
- `if debug:
-			return PackedStringArray(["AndroidIAPP-debug.aar"])
-		else:
-			return PackedStringArray(["AndroidIAPP-release.aar"])`
-
- - this is just a billing helper file, you need something like this (https://gist.github.com/nitish800/60a1f3b6e746805b67a68395ca8f4ca6) and actually run this as autoload
-
- - Don't forgot to add this permission,
- com.android.vending.BILLING
- com.google.android.gms.permission.AD_ID
-
- You can add in Project > Export > Permissions > Custom Permissions
+- Ensure the plugin is activated in `Project > Project Settings > Plugins`.
+- Check `AndroidIAPP.gd` to confirm the correct path to the AAR file:
+  ```gdscript
+  if debug:
+      return PackedStringArray(["AndroidIAPP-debug.aar"])
+  else:
+      return PackedStringArray(["AndroidIAPP-release.aar"])
+  ```
+- Add the plugin as an AutoLoad script (e.g., `res://addons/android_iapp/iap.gd`):
+  1. Go to `Project > Project Settings > AutoLoad`.
+  2. Add the script and enable it.
+- Add the following dependency in your `app/build.gradle`:
+  ```gradle
+  dependencies {
+      implementation 'com.android.billingclient:billing:7.1.1'
+  }
+  ```
+- Add the billing permission in `Project > Export > Permissions > Custom Permissions`:
+  ```
+  com.android.vending.BILLING
+  ```
+- Run `./gradlew build` to verify the build.
 
 ## Examples
 
-- [Example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) of a script for working with a plugin
-- Another [Example](https://gist.github.com/code-with-max/56881cbb3796a19a68d8eabd819d6ff7)
+- [Example script](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) for working with the plugin.
+- [Another example](https://gist.github.com/code-with-max/56881cbb3796a19a68d8eabd819d6ff7).
+- [Sample AutoLoad script](https://gist.github.com/nitish800/60a1f3b6e746805b67a68395ca8f4ca6) to initialize the plugin and handle signals.
 
-## Before start
+## Before Start
 
-- Google Play Billing uses these three types of purchases:
-  - Products that will be consumed ("inapp").
-  - Products that will be acknowledged ("inapp").
-  - Subscriptions that will be purchased and consumed ("subs").
+- **Purchase Types**:
+  - Consumable products (`"inapp"`): Must be consumed using `consumePurchase`.
+  - Non-consumable products (`"inapp"`): Must be acknowledged using `acknowledgePurchase`.
+  - Subscriptions (`"subs"`): Must be acknowledged using `acknowledgePurchase`.
+  - Product and subscription IDs must be passed as a list of strings, even for a single ID (e.g., `["product_id"]`).
 
-  And their IDs should be passed to the function as a list of String elements. Even if there is only one ID, it still needs to be wrapped in a list.
+- **Return Format**:
+  - All methods return a Godot `Dictionary` with keys in snake_case (e.g., `getProductId` → `product_id`).
+  - See example responses: [in-app product](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json), [subscription](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_subscription.json), [purchase](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json).
+  - Error responses include `response_code` (from [BillingResponseCode](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.BillingResponseCode)) and `debug_message`.
 
-- All public methods and values returned by Google Play Billing are presented as a typed Godot dictionary. All dictionary keys represent the names of public methods written in snake_case style.
-  - getProductId -> `product_id`
-  - getSubscriptionOfferDetails -> `subscription_offer_details`
+- **Godot Compatibility**: Tested with Godot 4.5. Kotlin coroutines are not supported in Godot 4.2 or earlier.
 
-  See the variant of response [here](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json)
+## Signals Descriptions
 
-- The plugin also includes all standard [BillingResponseCode](https://developer.android.com/reference/com/android/billingclient/api/BillingClient.BillingResponseCode) messages as a key in the dictionary called `response_code`. Additionally, it adds a `debug_message` key if the code indicates an error.
+### Test Signal
+- `helloResponse`: Emitted when a response to a hello message is received.
+  - **Returns**: `String` (the message passed to `sayHello` or an error like `"Error: Activity is null"`).
 
-## Signals Descriptions (Event listeners)
+### Information Signals
+- `startConnection`: Emitted when the connection to Google Play Billing starts.
+  - **Returns**: None.
+- `connected`: Emitted when successfully connected.
+  - **Returns**: None.
+- `disconnected`: Emitted when disconnected or if the Android activity is unavailable.
+  - **Returns**: `Dictionary` (e.g., `{"debug_message": "Activity is null"}`).
 
-### Test signal
-
-*Returns a String value.*
-
-`helloResponse`: Emitted when a response to a hello message is received.
-
-### Information signals
-
-*Does not return anything.*
-
-`startConnection`: Emitted when the connection to Google Play Billing starts.
-
-`connected`: Emitted when successfully connected to Google Play Billing.
-
-`disconnected`: Emitted when disconnected from Google Play Billing.
-
-### Billing signals  
-
-*Returns a Dictionary of Godot type.*
-
-`query_purchases`: Emitted when a query for purchases is successful.  
-Returns a dictionary with purchases or subscriptions.
-
-`query_purchases_error`: Emitted when there is an error querying purchases.  
-Returns a dictionary with error codes and debug message.
-
-`query_product_details`: Emitted when a query for product details is successful.  
-Returns a dictionary with product or subscription details.
-
-`query_product_details_error`: Emitted when there is an error querying product details.  
-Returns a dictionary with error codes and debug message.
-
-`purchase_error`: Emitted when there is an error during the purchase process.  
-Returns a dictionary with error codes and debug message.
-
-`purchase_updated`: Emitted when the purchase information is updated.  
-Returns a dictionary with purchases or subscriptions.
-
-`purchase_cancelled`: Emitted when a purchase is cancelled.  
-Returns a dictionary with error codes and debug message.
-
-`purchase_update_error`: Emitted when there is an error updating the purchase information.  
-Returns a dictionary with error codes and debug message.
-
-`purchase_consumed`: Emitted when a purchase is successfully consumed.  
-Returns a dictionary with confirmation message.
-
-`purchase_consumed_error`: Emitted when there is an error consuming the purchase.  
-Returns a dictionary with error codes and debug message.
-
-`purchase_acknowledged`: Emitted when a purchase is successfully acknowledged.  
-Returns a dictionary with confirmation message.
-
-`purchase_acknowledged_error`: Emitted when there is an error acknowledging the purchase.  
-Returns a dictionary with error codes and debug message.
+### Billing Signals
+- `query_purchases`: Emitted when a purchase query is successful.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer (e.g., `BillingClient.BillingResponseCode.OK`).
+    - `purchases_list`: Array of Dictionaries (see [purchase example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json)).
+- `query_purchases_error`: Emitted on purchase query errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer (e.g., `BillingClient.BillingResponseCode.ERROR`).
+    - `debug_message`: String (e.g., `"No purchase found"`).
+    - `purchases_list`: null.
+- `query_product_details`: Emitted when a product details query is successful.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `product_details_list`: Array of Dictionaries (see [in-app example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json), [subscription example](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_subscription.json)).
+- `query_product_details_error`: Emitted on product details query errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `debug_message`: String (e.g., `"No product details found"`).
+- `purchase_updated`: Emitted when purchase information is updated.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `purchases_list`: Array of Dictionaries (e.g., `{"product_id": "blue_skin_v1", "purchase_token": "...", "is_acknowledged": false}`).
+- `purchase_error`: Emitted on purchase errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `debug_message`: String (e.g., `"Activity is null"`, `"Product ID list is empty"`).
+    - `product_id`: String (if applicable).
+    - `base_plan_id`: String (for subscriptions).
+- `purchase_cancelled`: Emitted when a purchase is cancelled by the user.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer (e.g., `BillingClient.BillingResponseCode.USER_CANCELED`).
+    - `debug_message`: String.
+- `purchase_update_error`: Emitted on purchase update errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `debug_message`: String.
+- `purchase_consumed`: Emitted when a purchase is consumed.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `purchase_token`: String.
+- `purchase_consumed_error`: Emitted on consume errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `debug_message`: String.
+    - `purchase_token`: String.
+- `purchase_acknowledged`: Emitted when a purchase is acknowledged.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `purchase_token`: String.
+- `purchase_acknowledged_error`: Emitted on acknowledge errors.
+  - **Returns**: `Dictionary`
+    - `response_code`: Integer.
+    - `debug_message`: String.
+    - `purchase_token`: String.
 
 ## Functions
 
-`startConnection()`: Starts the connection to Google Play Billing, emit signals:
+`startConnection()`: Starts the connection to Google Play Billing.
+- Emits: `startConnection`, `connected`, or `disconnected` (if activity is unavailable).
+- **Warning**: Ensure the plugin is initialized after Godot's Android activity is available.
 
-- `startConnection` signal when connection is started.
-- `connected` signal if connection is successful.  
+`isReady()`: Checks if the billing connection is ready.
+- **Returns**: `bool`.
 
----
-`isReady()`: Checks if the connection to Google Play Billing is ready and returns a boolean value.
+`sayHello(message: String = "Hello from AndroidIAPP plugin")`: Sends a test message.
+- Emits: `helloResponse`.
+- Displays a Toast and logs to the console.
+- **Warning**: May fail with `"Error: Activity is null"` if called too early. Avoid in production.
 
----
-`sayHello()` : Sends a hello message from the plugin.  
-*For testing purposes, not recommended in production.*  
+`queryPurchases(productType: String)`: Queries purchases.
+- `productType`: `"inapp"` or `"subs"`.
+- Emits: `query_purchases` or `query_purchases_error`.
+- **Note**: Call after `connected` signal to ensure billing is ready.
+- **Warning**: Due to Godot JNI limitations, `productType` must be specified. Future updates may include `queryInAppPurchases()` and `querySubscriptions()`.
 
-- Emit `helloResponse` signal
-- Sending Log.v message to the console
-- Display a system toast.
+`queryProductDetails(productId: List<String>, productType: String)`: Queries product or subscription details.
+- `productId`: List of product/subscription IDs (must not be empty).
+- `productType`: `"inapp"` or `"subs"`.
+- Emits: `query_product_details` or `query_product_details_error`.
+- **Warning**: Passing an empty `productId` list or incorrect `productType` triggers `query_product_details_error`.
 
----
-`queryPurchases(productType: String)`  
-productType: **"inapp"** for products or **"subs"** for subscriptions.  
-Handling purchases made [outside your app](https://developer.android.com/google/play/billing/integrate#ooap).  
-> [!NOTE]
-> I recommend calling it every time you establish a connection with the billing service.
+`purchase(product_id: List<String>, is_personalized: bool)`: Initiates a product purchase.
+- `product_id`: List of product IDs (must not be empty).
+- `is_personalized`: Set to `false` unless complying with [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528) (see [details](https://developer.android.com/google/play/billing/integrate#personalized-price)).
+- Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
+- **Warning**: Empty or invalid `product_id` triggers `purchase_error`.
+- **Important**: Call `consumePurchase` or `acknowledgePurchase` to complete the transaction.
 
-Emit signals:
+`subscribe(subscription_id: List<String>, base_plan_id: List<String>, is_personalized: bool)`: Initiates a subscription.
+- `subscription_id`, `base_plan_id`: Lists of IDs (must not be empty).
+- `is_personalized`: Set to `false` unless complying with EU directive.
+- Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
+- **Warning**: Empty or invalid `subscription_id`/`base_plan_id` triggers `purchase_error`.
+- **Important**: Call `acknowledgePurchase` to complete the subscription.
 
-- `query_purchases`: if a query for purchases is successful.  
-- `query_purchases_error`: if there is an error querying purchases.
+`consumePurchase(purchase_token: String)`: Consumes a purchase.
+- `purchase_token`: Token from `purchase_updated` response.
+- Emits: `purchase_consumed` or `purchase_consumed_error`.
+- **Warning**: Invalid or empty `purchase_token` triggers `purchase_consumed_error`.
 
----
-`queryProductDetails(productId: List<String>, productType: String)`: This function queries product of subscriptions details from Google Play Billing.  
-`productId`: ID of the product or subscription wrapped in a list.  
-`productType`: **"inapp"** for products or **"subs"** for subscriptions.
+`acknowledgePurchase(purchase_token: String)`: Acknowledges a purchase or subscription.
+- `purchase_token`: Token from `purchase_updated` response.
+- Emits: `purchase_acknowledged` or `purchase_acknowledged_error`.
+- **Warning**: Invalid or empty `purchase_token` triggers `purchase_acknowledged_error`.
 
-> [!NOTE]
-> You must pass the product type as a parameter. If you pass the wrong product type with the product IDs, like using subscription IDs with "inapp", it won't work and the function will return an error.
+## Step-by-step Set Up Guide
 
-Emit signals:
+### 1. Connecting to the Google Play Billing Library
+1. Enable the plugin in `Project > Project Settings > Plugins`.
+2. Add `com.android.vending.BILLING` permission in `Project > Export > Permissions > Custom Permissions`.
+3. Add an AutoLoad script (e.g., `iap.gd`) to initialize the plugin:
+   ```gdscript
+   extends Node
+   var billing = null
+   func _ready():
+       if Engine.has_singleton("AndroidIAPP"):
+           billing = Engine.get_singleton("AndroidIAPP")
+           billing.connected.connect(_on_connected)
+           billing.disconnected.connect(_on_disconnected)
+           billing.startConnection()
+       else:
+           printerr("AndroidIAPP singleton not found!")
+   func _on_connected():
+       print("Connected to Google Play Billing")
+   func _on_disconnected():
+       print("Billing disconnected")
+   ```
 
-- `query_product_details`: If a query for product details is successful.  
-- `query_product_details_error`: If error :)
+### 2. Requesting a List of Products and Subscriptions
+- Query product details:
+  ```gdscript
+  billing.queryProductDetails(["blue_skin_v1"], "inapp")
+  billing.query_product_details.connect(_on_query_product_details)
+  func _on_query_product_details(response):
+      for product in response.product_details_list:
+          print("Product: ", product.name, ", Price: ", product.one_time_purchase_offer_details.formatted_price)
+  ```
+- Query purchases:
+  ```gdscript
+  billing.queryPurchases("inapp")
+  billing.query_purchases.connect(_on_query_purchases)
+  func _on_query_purchases(response):
+      for purchase in response.purchases_list:
+          print("Purchase: ", purchase.products, ", State: ", purchase.purchase_state)
+  ```
 
-See an example of [product](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_inapp.json) details answer or [subscription](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/details_subscription.json).
+### 3. Handling Purchases and Subscriptions
+- Make a purchase:
+  ```gdscript
+  billing.purchase(["blue_skin_v1"], false)
+  billing.purchase_updated.connect(_on_purchase_updated)
+  func _on_purchase_updated(response):
+      for purchase in response.purchases_list:
+          if purchase.purchase_state == 1:  # PURCHASED
+              if purchase.products.has("blue_skin_v1"):
+                  billing.acknowledgePurchase(purchase.purchase_token)
+  ```
+- Subscribe to a plan:
+  ```gdscript
+  billing.subscribe(["remove_ads_sub_01"], ["remove-ads-on-year"], false)
+  billing.purchase_updated.connect(_on_subscription_updated)
+  func _on_subscription_updated(response):
+      for purchase in response.purchases_list:
+          if purchase.purchase_state == 1:  # PURCHASED
+              billing.acknowledgePurchase(purchase.purchase_token)
+  ```
 
----
-> [!NOTE]
-> This is where the biggest difference from the official plugin begins.
-> If you have never used the old plugin before, you don't need to worry.
-> But if you are planning to switch to this version, you should know that I have implemented two separate functions for buying products and subscribing to plans.
+### 4. Confirming and Consuming Purchases
+- Consume a purchase:
+  ```gdscript
+  billing.consumePurchase(purchase.purchases_list[0].purchase_token)
+  billing.purchase_consumed.connect(_on_purchase_consumed)
+  func _on_purchase_consumed(response):
+      print("Consumed: ", response.purchase_token)
+  ```
+- Acknowledge a purchase:
+  ```gdscript
+  billing.acknowledgePurchase(purchase.purchases_list[0].purchase_token)
+  billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
+  func _on_purchase_acknowledged(response):
+      print("Acknowledged: ", response.purchase_token)
+  ```
 
----
-`purchase(product_id: List<String>, is_personalized: bool)`: purchase a product from Google Play Billing.  
+### 5. Handling Errors and Purchase States
+- Handle errors:
+  ```gdscript
+  billing.purchase_error.connect(_on_purchase_error)
+  func _on_purchase_error(error):
+      print("Purchase error: ", error.debug_message, ", Product: ", error.product_id)
+  billing.query_product_details_error.connect(_on_query_product_details_error)
+  func _on_query_product_details_error(error):
+      print("Product details error: ", error.debug_message)
+  ```
+- Check purchase state (from `iap.txt`):
+  ```gdscript
+  enum purchaseState { UNSPECIFIED_STATE = 0, PURCHASED = 1, PENDING = 2 }
+  func process_purchase(purchase):
+      if purchase.purchase_state == purchaseState.PURCHASED:
+          print("Processing purchase: ", purchase.products)
+      else:
+          print("Purchase pending: ", purchase.products)
+  ```
 
-- `product_id`: ID of the product wrapped in a list.  
-- `is_personalized`: This is to ensure compliance with the [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528), you can clarify this [here](https://developer.android.com/google/play/billing/integrate#personalized-price), but if you don't understand why, just set it to `false`.  
+## Common Errors
 
-Emit signals:
-
-- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful. [Example of response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json)  
-`query_product_details_error`: If an error occurred while receiving information about the product being purchased.  
-- `purchase_error`: If there is an error during the purchase process.  
-- `purchase_cancelled`: If a purchase is cancelled by the user.  
-- `purchase_update_error`: If there is an error updating the purchase information.  
-
-> [!IMPORTANT]
-> Do not forget **consume or acknowledge** the purchase.
-
----
-`subscribe(subscription_id: List<String>, base_plan_id: List<String>, is_personalized: bool)`: subscribe to a subscription plan from Google Play Billing.  
-
-- `subscription_id`: ID of the subscription wrapped in a list.  
-- `base_plan_id`: ID of the base subscription plan wrapped in a list.  
-- `is_personalized`: This is to ensure compliance with the [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528), you can clarify this [here](https://developer.android.com/google/play/billing/integrate#personalized-price), but if you don't understand why, just set it to `false`.  
-
-Emit signals:
-
-- `purchase_updated`: Emitted when the purchase information is updated. The purchase process was successful.  
-- `query_product_details_error`: If an error occurred while receiving information about the subscription being purchased.  
-- `purchase_error`: If there is an error during the purchase process.  
-- `purchase_cancelled`: If a purchase is cancelled by the user.  
-- `purchase_update_error`: If there is an error updating the purchase information.  
-
-> [!IMPORTANT]
-> Do not forget **acknowledge** the subscription.
-
----
-`consumePurchase(purchase["purchase_token"]`: consume a purchase from Google Play Billing.  
-`purchase["purchase_token"]`: Purchase token from purchase updated [response](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/purchase_updated_inapp.json).
-
-Emit signals:
-
-- `purchase_consumed`: If a purchase is successfully consumed.  
-- `purchase_consumed_error`: If there is an error consuming the purchase.
-
----
-`acknowledgePurchase(purchase["purchase_token"])`: acknowledge a purchase from Google Play Billing.  
-`purchase["purchase_token"]`: Purchase token from purchase updated response.
-
-Emit signals:
-
-- `purchase_acknowledged`: If a purchase is successfully acknowledged.  
-- `purchase_acknowledged_error`: If there is an error acknowledging the purchase.
-
----
-
-## Step-by-step set up guide
-
-### Connecting to the Google Play Billing Library
-
-### Requesting a list of products and subscriptions
-
-### Handling purchases and subscriptions
-
-### Confirming and consuming purchases
-
-### Handling errors and purchase states
+- `"Activity is null"`: The Android activity is not available. Ensure the plugin is called after Godot initialization.
+- `"Product ID list is empty"`: The `product_id` or `base_plan_id` list is empty. Always pass non-empty lists.
+- `"Base Plan ID not found"`: The `base_plan_id` does not match any subscription plan in Google Play Console.
+- `"No product details found"`: The product ID or type is invalid. Verify IDs in Google Play Console.
+- `"Purchase token is blank"`: The `purchase_token` is empty or invalid. Check the `purchase_updated` response.
