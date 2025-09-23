@@ -8,7 +8,6 @@ import android.widget.Toast
 
 import android.os.Handler
 import android.os.Looper
-import java.lang.Thread
 
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.AcknowledgePurchaseParams
@@ -22,11 +21,6 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-//import com.android.billingclient.api.consumePurchase
-//import kotlinx.coroutines.Dispatchers
-//import kotlinx.coroutines.withContext
-//import kotlin.coroutines.resume
-//import kotlin.coroutines.suspendCoroutine
 import org.godotengine.godot.Godot
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.plugin.GodotPlugin
@@ -34,102 +28,57 @@ import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
 
 
+/**
+ * AndroidIAPP is a Godot plugin for handling in-app purchases using the Google Play Billing Library.
+ *
+ * This plugin provides functionality to:
+ * - Connect to the Google Play Billing service.
+ * - Query for available products (both one-time purchases and subscriptions).
+ * - Initiate purchase flows for products.
+ * - Handle purchase updates, including new purchases, cancellations, and errors.
+ * - Acknowledge and consume purchases.
+ *
+ * The plugin communicates with Godot through signals, providing updates on the status of various operations.
+ *
+ * It is important to call `endConnection()` when the plugin is no longer in use to release resources.
+ *
+ * @param godot The Godot instance.
+ */
 class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     PurchasesUpdatedListener,
     BillingClientStateListener {
 
-
-//    private val purchasesUpdatedListener =
-//        PurchasesUpdatedListener { billingResult, purchases -> }
-//    private val acknowledgePurchaseResponseListener: AcknowledgePurchaseResponseListener = AcknowledgePurchaseResponseListener { billingResult -> }
-
     private lateinit var billingClient: BillingClient
-
-//    private val billingClient: BillingClient = BillingClient
-//        .newBuilder(activity!!)
-//        .setListener(this)
-//        .enablePendingPurchases(
-//            PendingPurchasesParams.newBuilder().build()
-//        )
-//        .build()
-
+    private val pluginName = "AndroidIAPP"
 
     // Signals
-    // Echo
-    private val helloResponseSignal = SignalInfo(
-        "helloResponse", String::class.java,
-        )
+    private val helloResponseSignal = SignalInfo("helloResponse", String::class.java)
+    private val startConnectionSignal = SignalInfo("startConnection")
+    private val connectedSignal = SignalInfo("connected")
+    private val disconnectedSignal = SignalInfo("disconnected")
+    private val queryPurchasesSignal = SignalInfo("query_purchases", Dictionary::class.java)
+    private val queryPurchasesErrorSignal = SignalInfo("query_purchases_error", Dictionary::class.java)
+    private val queryProductDetailsSignal = SignalInfo("query_product_details", Dictionary::class.java)
+    private val queryProductDetailsErrorSignal = SignalInfo("query_product_details_error", Dictionary::class.java)
+    private val purchaseSignal = SignalInfo("purchase", Dictionary::class.java)
+    private val purchaseErrorSignal = SignalInfo("purchase_error", Dictionary::class.java)
+    private val purchaseUpdatedSignal = SignalInfo("purchase_updated", Dictionary::class.java)
+    private val purchaseCancelledSignal = SignalInfo("purchase_cancelled", Dictionary::class.java)
+    private val purchaseUpdatedErrorSignal = SignalInfo("purchase_update_error", Dictionary::class.java)
+    private val purchaseConsumedSignal = SignalInfo("purchase_consumed", Dictionary::class.java)
+    private val purchaseConsumedErrorSignal = SignalInfo("purchase_consumed_error", Dictionary::class.java)
+    private val purchaseAcknowledgedSignal = SignalInfo("purchase_acknowledged", Dictionary::class.java)
+    private val purchaseAcknowledgedErrorSignal = SignalInfo("purchase_acknowledged_error", Dictionary::class.java)
+    private val billingInfoSignal = SignalInfo("billing_info", Dictionary::class.java)
+    private val priceChangeAcknowledgedSignal = SignalInfo("price_change_acknowledged", Dictionary::class.java)
+    private val priceChangeErrorSignal = SignalInfo("price_change_error", Dictionary::class.java)
+    private val inAppMessageResultSignal = SignalInfo("in_app_message_result", Dictionary::class.java)
+    private val alternativeBillingOnlyTransactionReportedSignal = SignalInfo("alternative_billing_only_transaction_reported", Dictionary::class.java)
 
-    // Information
-    private val startConnectionSignal = SignalInfo(
-        "startConnection",
-        )
-    private val connectedSignal = SignalInfo(
-        "connected",
-        )
-    private val disconnectedSignal = SignalInfo(
-        "disconnected",
-        )
 
-    // Query purchases
-    private val queryPurchasesSignal = SignalInfo(
-        "query_purchases", Dictionary::class.java,
-        )
-    private val queryPurchasesErrorSignal = SignalInfo(
-        "query_purchases_error", Dictionary::class.java,
-        )
-
-    // Query product details
-    private val queryProductDetailsSignal = SignalInfo(
-        "query_product_details", Dictionary::class.java,
-        )
-    private val queryProductDetailsErrorSignal = SignalInfo(
-        "query_product_details_error", Dictionary::class.java,
-        )
-
-    // Purchase processing
-    private val purchaseSignal = SignalInfo(
-        "purchase", Dictionary::class.java,
-        )
-    private val purchaseErrorSignal = SignalInfo(
-        "purchase_error", Dictionary::class.java,
-        )
-
-    // Purchase updating
-    private val purchaseUpdatedSignal = SignalInfo(
-        "purchase_updated", Dictionary::class.java,
-        )
-    private val purchaseCancelledSignal = SignalInfo(
-        "purchase_cancelled", Dictionary::class.java,
-        )
-    private val purchaseUpdatedErrorSignal = SignalInfo(
-        "purchase_update_error", Dictionary::class.java,
-        )
-
-    // Purchases consuming
-    private val purchaseConsumedSignal = SignalInfo(
-        "purchase_consumed", Dictionary::class.java,
-        )
-    private val purchaseConsumedErrorSignal = SignalInfo(
-        "purchase_consumed_error", Dictionary::class.java,
-        )
-
-    // Purchases acknowledge
-    private val purchaseAcknowledgedSignal = SignalInfo(
-        "purchase_acknowledged", Dictionary::class.java,
-        )
-    private val purchaseAcknowledgedErrorSignal = SignalInfo(
-        "purchase_acknowledged_error", Dictionary::class.java,
-        )
-
-    // Billing info (use it for delivery any messages, e.g. error handling)
-    private val billingInfoSignal = SignalInfo(
-        "billing_info", Dictionary::class.java,
-        )
-
-    // plugin name
-    private val pluginName = "AndroidIAPP" //
-
+    override fun getPluginName(): String {
+        return pluginName
+    }
 
     override fun getPluginSignals(): Set<SignalInfo> {
         Log.i(pluginName, "Registering plugin signals")
@@ -152,18 +101,29 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             purchaseAcknowledgedSignal,
             purchaseAcknowledgedErrorSignal,
             billingInfoSignal,
+            priceChangeAcknowledgedSignal,
+            priceChangeErrorSignal,
+            inAppMessageResultSignal,
+            alternativeBillingOnlyTransactionReportedSignal,
         )
     }
 
-    // Send info signal to godot listeners
-    // Used for delivery any messages, e.g. error handling
+    /**
+     * Sends an informational signal to Godot.
+     * This can be used for debugging or providing context for other signals.
+     * @param returnDict A Dictionary containing the information to be sent.
+     */
     private fun sendInfoSignal(returnDict: Dictionary) {
         returnDict["plugin_name"] = pluginName
         emitSignal(billingInfoSignal.name, returnDict)
     }
 
-
-    // "Safe" way to get Activity
+    /**
+     * Safely gets the current Activity, returning null if it's not available.
+     * Sends an info signal to Godot if the activity is not available.
+     * @param returnDict A Dictionary to which diagnostic information will be added.
+     * @return The current Activity, or null if it's not available.
+     */
     private fun requireActivityForPurchase(returnDict: Dictionary): Activity? {
         return activity?.also {
             Log.v(pluginName, "Activity available for purchase (fun requireActivityForPurchase)")
@@ -177,56 +137,52 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
     }
 
-
-    override fun getPluginName(): String {
-        return ("AndroidIAPP")
-    }
-
-
+    /**
+     * Checks if the BillingClient is initialized and ready for use.
+     * @return `true` if the BillingClient is ready, `false` otherwise.
+     */
     @get:UsedByGodot
     val isReady: Boolean
         get() {
+            if (!::billingClient.isInitialized) {
+                Log.v(pluginName, "BillingClient is not initialized.")
+                return false
+            }
             Log.v(pluginName, "Is ready: ${billingClient.isReady}")
             return billingClient.isReady
         }
 
-
-    // TODO Type mismatch. Check if it is possible/useful
-    // Godot requare string ???
-    // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ConnectionState
-//    @get:UsedByGodot
-//    val connectionState: Int
-//        get() {
-//            Log.v(pluginName, "Connection state: ${billingClient.connectionState}")
-//            return billingClient.connectionState
-//        }
-
-
-    // Just say hello func
+    /**
+     * A simple function to check if the plugin is loaded and responding.
+     * It shows a Toast message on the Android device.
+     * @param says The message to be displayed in the Toast.
+     */
     @UsedByGodot
     fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
         if (activity == null) {
             Log.e(pluginName, "Cannot show Toast: Activity is null")
-            val returnDict = Dictionary()
-            returnDict["debug_message"] = "Activity is null"
             emitSignal(helloResponseSignal.name, "Error: Activity is null")
             return
         }
-        if (Looper.getMainLooper().thread !== Thread.currentThread()) {
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
-                emitSignal(helloResponseSignal.name, says)
-                Log.i(pluginName, says)
-            }
-        } else {
+        val postToast: () -> Unit = {
             Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
             emitSignal(helloResponseSignal.name, says)
             Log.i(pluginName, says)
         }
+
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            activity?.runOnUiThread(postToast)
+        } else {
+            postToast()
+        }
     }
 
+    /**
+     * Initializes the BillingClient and starts a connection to the Google Play Billing service.
+     * This must be called before any other billing operations can be performed.
+     */
     @UsedByGodot
-    private fun startConnection() {
+    fun startConnection() {
         Log.i(pluginName, "Starting billing service connection")
         if (activity == null) {
             Log.e(pluginName, "Cannot start BillingClient connection: Activity is null")
@@ -237,22 +193,28 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             sendInfoSignal(returnDict)
             return
         }
+
+        if (::billingClient.isInitialized && billingClient.isReady) {
+            Log.i(pluginName, "BillingClient is already connected.")
+            emitSignal(connectedSignal.name)
+            return
+        }
+
         try {
             Log.i(pluginName, "Creating billing client")
             billingClient = BillingClient.newBuilder(activity!!)
                 .setListener(this)
                 .enablePendingPurchases(
                     PendingPurchasesParams.newBuilder()
-                        .enableOneTimeProducts() // Явно включаем поддержку отложенных покупок для inapp
+                        .enableOneTimeProducts() // Explicitly enable support for pending one-time purchases.
                         .build()
                 )
                 .build()
+
+            Log.i(pluginName, "Billing client created successfully, starting connection.")
             billingClient.startConnection(this)
             emitSignal(startConnectionSignal.name)
-            Log.i(pluginName, "Billing client created successfully")
-            Log.i(pluginName, "Billing service connection initiated")
         } catch (e: Exception) {
-            // Handle any exceptions that may have occurred while creating the billing client.
             Log.e(pluginName, "Error initializing BillingClient: ${e.message}", e)
             val returnDict = Dictionary()
             returnDict["fun_name"] = "startConnection"
@@ -262,42 +224,61 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
     }
 
+    /**
+     * Ends the connection to the Google Play Billing service.
+     * This should be called when the plugin is no longer needed to release resources.
+     */
+    @UsedByGodot
+    fun endConnection() {
+        if (::billingClient.isInitialized && billingClient.isReady) {
+            Log.i(pluginName, "Ending billing service connection.")
+            billingClient.endConnection()
+        }
+    }
+
 
     override fun onBillingServiceDisconnected() {
         emitSignal(disconnectedSignal.name)
-        Log.v(pluginName, "Billing service disconnected")
+        Log.v(pluginName, "Billing service disconnected. Trying to reconnect...")
         // Try to restart the connection on the next request to
         // Google Play by calling the startConnection() method.
     }
-
 
     override fun onBillingSetupFinished(billingResult: BillingResult) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             emitSignal(connectedSignal.name)
             Log.v(pluginName, "Billing service connected")
-            // The BillingClient is ready. You can query purchases here.
+        } else {
+            Log.e(pluginName, "Billing setup failed with response code: ${billingResult.responseCode}")
+            val returnDict = Dictionary()
+            returnDict["response_code"] = billingResult.responseCode
+            returnDict["debug_message"] = billingResult.debugMessage
+            sendInfoSignal(returnDict)
         }
     }
 
-
-    // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ProductType
-    // productType should be ProductType.INAPP or ProductType.SUBS
-    // TODO Default value of productType not setting. Need function overloading for fixing
+    /**
+     * Queries for active purchases of a given type.
+     * This is useful for restoring purchases when the app starts.
+     * @param productType The type of product to query for (e.g., "inapp" or "subs"). Defaults to "inapp".
+     */
     @UsedByGodot
-    private fun queryPurchases(productType: String = ProductType.INAPP) {
-        val params = QueryPurchasesParams
-            .newBuilder()
-            .setProductType(productType)
-            .build()
+    fun queryPurchases(productType: String = ProductType.INAPP) {
+        if (!isReady) {
+            Log.e(pluginName, "Billing client is not ready. Cannot query purchases.")
+            return
+        }
+        val params = QueryPurchasesParams.newBuilder().setProductType(productType).build()
+
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
-            val returnDict = Dictionary() // from Godot type Dictionary
+            val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Purchases found")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "No purchase found")
+                Log.v(pluginName, "No purchase found or an error occurred.")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchases_list"] = null
@@ -306,60 +287,53 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
     }
 
-    // Use kotlin functions for queryPurchases
-    // Kotlin coroutines are not supported in the current version of Godot (4.2).
-    // java.lang.NoSuchMethodError: no non-static method "Lone/allme/plugin/androidiapp/AndroidIAPP;.queryPurchasesAsync
-    // Use this feature in later versions.
-//    @UsedByGodot
-//    suspend fun queryPurchasesAsync() {
-//        val params = QueryPurchasesParams.newBuilder()
-//            .setProductType(ProductType.SUBS)
-//
-//        // uses queryPurchasesAsync Kotlin extension function
-//        val purchasesResult = billingClient.queryPurchasesAsync(params.build())
-//
-//        // check purchasesResult.billingResult
-//        // process returned purchasesResult.purchasesList, e.g. display the plans user owns
-//    }
-
-
+    /**
+     * Queries for details of a list of products.
+     * @param listOfProductsIDs An array of product ID strings.
+     * @param productType The type of products to query (e.g., "inapp" or "subs"). Defaults to "inapp".
+     */
     @UsedByGodot
-    private fun queryProductDetails(
+    fun queryProductDetails(
         listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
-        val products = ArrayList<QueryProductDetailsParams.Product>()
+        if (!isReady) {
+            Log.e(pluginName, "Billing client is not ready. Cannot query product details.")
+            return
+        }
 
-        for (productID in listOfProductsIDs) {
-            products.add(QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(productID)
+        val products = listOfProductsIDs.map {
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(it)
                 .setProductType(productType)
-                .build())
+                .build()
         }
 
         val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
             .setProductList(products)
             .build()
 
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) {
-            billingResult, productDetailsList ->
-            val returnDict = Dictionary() // from Godot type Dictionary
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, productDetailsList ->
+            val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Product details found")
                 returnDict["response_code"] = billingResult.responseCode
-                returnDict["product_details_list"] = IAPP_utils
-                    .convertProductDetailsListToArray(productDetailsList)
+                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "No product details found")
+                Log.v(pluginName, "No product details found or an error occurred.")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
             }
         }
-
     }
 
+    /**
+     * Initiates the purchase flow for a one-time product.
+     * @param listOfProductsIDs An array containing the ID of the product to purchase. Only the first ID is used.
+     * @param isOfferPersonalized A boolean indicating if the offer is personalized.
+     */
     @UsedByGodot
-    private fun purchase(listOfProductsIDs: Array<String>,
+    fun purchase(listOfProductsIDs: Array<String>,
                          isOfferPersonalized: Boolean) {
 
         val returnDict = Dictionary()
@@ -376,7 +350,6 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             return
         }
 
-        // There can be only one!
         val productID = listOfProductsIDs[0]
         if (productID.isBlank()) {
             Log.e(pluginName, "Cannot start purchase: Product ID is blank")
@@ -386,285 +359,174 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
         Log.v(pluginName, "Starting purchase flow for $productID product")
 
-        // Before launching purchase flow, query product details.
-        val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                listOf(
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productID)
-                        .setProductType(ProductType.INAPP)
-                        .build()
-                )
-            )
-            .build()
-        // Querying details for purchasing product.
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) {
-            queryDetailsResult, productDetailsList ->
-            val returnDict = Dictionary() // from Godot type Dictionary
-            if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK) {
-                // Error getting details, say something to godot users.
-                Log.v(pluginName, "Error getting $productID product details")
-                returnDict["response_code"] = queryDetailsResult.responseCode
-                returnDict["debug_message"] = queryDetailsResult.debugMessage
-                emitSignal(queryProductDetailsErrorSignal.name, returnDict)
-            } else {
-                // Product details found successfully. Launch purchase flow.
-                Log.v(pluginName, "Details for product $productID found")
-                val productDetailsParamsList = listOf(
-                        BillingFlowParams.ProductDetailsParams.newBuilder().apply {
-                            // There can be only one!
-                            setProductDetails(productDetailsList[0])
-//                            val offerDetails = productDetailsList[0].subscriptionOfferDetails?.get(0)
-//                            Log.v(pluginName, "Offer details token: ${offerDetails?.offerToken}")
-//                            if (offerDetails != null) {
-//                                // Optional, setting offer token only for subscriptions.
-//                                setOfferToken(offerDetails.offerToken)
-//                            }
-                        }.build())
-                val flowParams = BillingFlowParams
-                    .newBuilder()
-                    .setProductDetailsParamsList(productDetailsParamsList)
-                    // https://developer.android.com/google/play/billing/integrate#personalized-price
-                    .setIsOfferPersonalized(isOfferPersonalized)
-                    .build()
-
-                // Running purchase flow.
-                val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
-                if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    // Purchasing successfully launched.
-                    // Result will be received in onPurchasesUpdated() method.
-                    Log.v(pluginName, "Product $productID purchasing launched successfully")
-                } else {
-                    // Error purchasing. Says something to Godot users.
-                    Log.v(pluginName, "$productID purchasing failed")
-                    returnDict["response_code"] = purchasingResult.responseCode
-                    returnDict["debug_message"] = purchasingResult.debugMessage
-                    returnDict["product_id"] = productID
-                    emitSignal(purchaseErrorSignal.name, returnDict)
-                }
-            }
-        }
+        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, isOfferPersonalized)
     }
 
-
-    // Process subscriptions
+    /**
+     * Initiates the purchase flow for a subscription.
+     * @param listOfProductsIDs An array containing the ID of the subscription product to purchase. Only the first ID is used.
+     * @param basePlanIDs An array containing the ID of the base plan. Only the first ID is used.
+     * @param isOfferPersonalized A boolean indicating if the offer is personalized.
+     */
     @UsedByGodot
-    private fun subscribe(listOfProductsIDs: Array<String>,
+    fun subscribe(listOfProductsIDs: Array<String>,
                           basePlanIDs: Array<String>,
                           isOfferPersonalized: Boolean) {
 
-        val activity = activity!!
+        val returnDict = Dictionary()
+        val activity = requireActivityForPurchase(returnDict) ?: return
 
-        // There can be only one!
-        val productID = listOfProductsIDs[0]
-        val basePlanID = basePlanIDs[0]
-        Log.v(pluginName, "Starting purchase flow for $productID subscription")
+        val productID = listOfProductsIDs.firstOrNull()
+        val basePlanID = basePlanIDs.firstOrNull()
 
-        // Before launching purchase flow, query product details.
+        if (productID.isNullOrBlank() || basePlanID.isNullOrBlank()) {
+             Log.e(pluginName, "Product ID or Base Plan ID is missing.")
+             returnDict["debug_message"] = "Product ID or Base Plan ID is missing."
+             emitSignal(purchaseErrorSignal.name, returnDict)
+             return
+        }
+
+        Log.v(pluginName, "Starting purchase flow for $productID subscription with base plan $basePlanID")
+        launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, isOfferPersonalized)
+    }
+
+    private fun launchPurchaseFlow(activity: Activity, productID: String, productType: String, basePlanID: String?, isOfferPersonalized: Boolean) {
         val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(productID)
-                        .setProductType(ProductType.SUBS)
+                        .setProductType(productType)
                         .build()
                 )
             )
             .build()
-        // Querying details for subscription.
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) {
-                queryDetailsResult, productDetailsList ->
-            val returnDict = Dictionary() // from Godot type Dictionary
-            if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK) {
-                // Error getting details, say something to godot users.
-                Log.v(pluginName, "Error getting $productID subscription details")
+
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { queryDetailsResult, productDetailsList ->
+            val returnDict = Dictionary()
+            if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK || productDetailsList.isNullOrEmpty()) {
+                Log.e(pluginName, "Error getting product details for $productID")
                 returnDict["response_code"] = queryDetailsResult.responseCode
                 returnDict["debug_message"] = queryDetailsResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
-            } else {
-                // Product details found successfully. Launch purchase flow.
-                Log.v(pluginName, "Details for subscription $productID found")
-                val productDetailsParamsList = listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder().apply {
-                        // There can be only one!
-                        setProductDetails(productDetailsList[0])
-                        val offerDetails =
-                            productDetailsList[0].subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
-                        if (offerDetails != null) {
-                            setOfferToken(offerDetails.offerToken)
-                        } else {
-                            Log.v(
-                                pluginName,
-                                "Base Plan ID $basePlanID not found in $productID subscription"
-                            )
-                            returnDict["debug_message"] =
-                                "Base Plan ID $basePlanID not found in $productID subscription"
-                            emitSignal(purchaseErrorSignal.name, returnDict)
-                        }
-                    }.build()
-                )
-                val flowParams = BillingFlowParams
-                    .newBuilder()
-                    .setProductDetailsParamsList(productDetailsParamsList)
-                    // https://developer.android.com/google/play/billing/integrate#personalized-price
-                    .setIsOfferPersonalized(isOfferPersonalized)
-                    .build()
+                return@queryProductDetailsAsync
+            }
 
-                // Running subscription flow.
-                val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
-                if (purchasingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    // Subscription successfully launched.
-                    // Result will be received in onPurchasesUpdated() method.
-                    Log.v(
-                        pluginName,
-                        "Subscription $productID with $basePlanID purchasing launched successfully"
-                    )
+            val productDetails = productDetailsList[0]
+            val productDetailsParamsList = mutableListOf<BillingFlowParams.ProductDetailsParams>()
+
+            val builder = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails)
+
+            if (productType == ProductType.SUBS) {
+                val offerDetails = productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
+                if (offerDetails != null) {
+                    builder.setOfferToken(offerDetails.offerToken)
                 } else {
-                    // Error purchasing. Says something to Godot users.
-                    Log.v(pluginName, "$productID purchasing failed")
-                    returnDict["response_code"] = purchasingResult.responseCode
-                    returnDict["debug_message"] = purchasingResult.debugMessage
-                    returnDict["product_id"] = productID
-                    returnDict["base_plan_id"] = basePlanID
+                    Log.e(pluginName, "Base Plan ID $basePlanID not found in $productID subscription")
+                    returnDict["debug_message"] = "Base Plan ID $basePlanID not found in $productID subscription"
                     emitSignal(purchaseErrorSignal.name, returnDict)
+                    return@queryProductDetailsAsync
                 }
+            }
+
+            productDetailsParamsList.add(builder.build())
+
+            val flowParams = BillingFlowParams.newBuilder()
+                .setProductDetailsParamsList(productDetailsParamsList)
+                .setIsOfferPersonalized(isOfferPersonalized)
+                .build()
+
+            val purchasingResult = billingClient.launchBillingFlow(activity, flowParams)
+            if (purchasingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+                Log.e(pluginName, "$productID purchasing failed")
+                returnDict["response_code"] = purchasingResult.responseCode
+                returnDict["debug_message"] = purchasingResult.debugMessage
+                returnDict["product_id"] = productID
+                if (basePlanID != null) returnDict["base_plan_id"] = basePlanID
+                emitSignal(purchaseErrorSignal.name, returnDict)
+            } else {
+                 Log.v(pluginName, "Product $productID purchasing launched successfully")
             }
         }
     }
 
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        val returnDict = Dictionary() // from Godot type Dictionary
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            // All good, some purchase(s) have been updated
-            Log.v(pluginName, "Purchases updated successfully")
-            returnDict["response_code"] = billingResult.responseCode
-            returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
-            emitSignal(purchaseUpdatedSignal.name, returnDict)
-        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.v(pluginName, "User canceled purchase updating")
-            returnDict["response_code"] = billingResult.responseCode
-            returnDict["debug_message"] = billingResult.debugMessage
-            emitSignal(purchaseCancelledSignal.name, returnDict)
-        } else {
-            // Purchasing errors. Says something to Godot users.
-            Log.v(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
-            returnDict["response_code"] = billingResult.responseCode
-            returnDict["debug_message"] = billingResult.debugMessage
-            emitSignal(purchaseUpdatedErrorSignal.name, returnDict)
+        val returnDict = Dictionary()
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                if (purchases != null) {
+                    Log.v(pluginName, "Purchases updated successfully")
+                    returnDict["response_code"] = billingResult.responseCode
+                    returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
+                    emitSignal(purchaseUpdatedSignal.name, returnDict)
+                }
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                Log.v(pluginName, "User canceled purchase updating")
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["debug_message"] = billingResult.debugMessage
+                emitSignal(purchaseCancelledSignal.name, returnDict)
+            }
+            else -> {
+                Log.v(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["debug_message"] = billingResult.debugMessage
+                emitSignal(purchaseUpdatedErrorSignal.name, returnDict)
+            }
         }
     }
 
-
-    // Consume purchase using Kotlin coroutines
-    // Kotlin coroutines are not supported in the current version of Godot (4.2).
-    // java.lang.NoSuchMethodError: no non-static method "Lone/allme/plugin/androidiapp/AndroidIAPP;.consumePurchaseKT
-    // Use this feature in later versions.
-    //
-//    @UsedByGodot
-//    suspend fun consumePurchaseKT(purchaseTokenLocal: String) {
-//        val consumeParams = ConsumeParams.newBuilder()
-//            .setPurchaseToken(purchaseTokenLocal)
-//            .build()
-//        val consumeResult = withContext(Dispatchers.IO) {
-//            billingClient.consumePurchase(consumeParams) }
-//        val returnDict = Dictionary() // from Godot type Dictionary
-//        if (consumeResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-//            Log.v(pluginName, "Purchase ${consumeResult.purchaseToken} acknowledged successfully")
-//            returnDict["response_code"] = consumeResult.billingResult.responseCode
-//            returnDict["purchase_token"] = consumeResult.purchaseToken
-//            emitSignal(purchaseConsumedSignal.name, returnDict)
-//        } else {
-//            Log.v(pluginName, "Error purchase acknowledging, response code: ${consumeResult.billingResult.responseCode}")
-//            returnDict["response_code"] = consumeResult.billingResult.responseCode
-//            returnDict["debug_message"] = consumeResult.billingResult.debugMessage
-//            emitSignal(purchaseConsumedSignal.name, returnDict)
-//        }
-//    }
-
-
-    // Acknowledge purchase using Kotlin coroutines
-    // Kotlin coroutines are not supported in the current version of Godot (4.2).
-    // " java.lang.NoSuchMethodError: no non-static method "
-    // Use this feature in later versions.
-    //
-//    @UsedByGodot
-//    suspend fun acknowledgePurchaseKT(purchaseTokenLocal: String) {
-//        val returnDict = Dictionary() // from Godot type Dictionary
-//        val acknowledgeParams = AcknowledgePurchaseParams.newBuilder()
-//            .setPurchaseToken(purchaseTokenLocal)
-//            .build()
-//        try {
-//            withContext(Dispatchers.IO) {
-//                val acknowledgeResult = suspendCoroutine<BillingResult> { continuation ->
-//                    billingClient.acknowledgePurchase(acknowledgeParams) { billingResult ->
-//                        continuation.resume(billingResult)
-//                    }
-//                }
-//
-//                if (acknowledgeResult.responseCode == BillingClient.BillingResponseCode.OK) {
-//                    Log.v(pluginName, "Purchase $purchaseTokenLocal acknowledged successfully")
-//                    returnDict["response_code"] = acknowledgeResult.responseCode
-//                    returnDict["purchase_token"] = purchaseTokenLocal
-//                    emitSignal(purchaseAcknowledgedSignal.name, returnDict)
-//                } else {
-//                    Log.v(pluginName, "Error purchase acknowledging, response code: ${acknowledgeResult.responseCode}")
-//                    returnDict["response_code"] = acknowledgeResult.responseCode
-//                    returnDict["debug_message"] = acknowledgeResult.debugMessage
-//                    emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
-//                }
-//            }
-//        } catch (e: Exception) {
-//            Log.v (pluginName, "Error purchase acknowledging, exception: ${e.message}")
-//            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
-//            returnDict["debug_message"] = e.message
-//            emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
-//        }
-//    }
-
-
-
-    // Java style consuming purchase
+    /**
+     * Consumes a one-time purchase.
+     * Consuming a purchase makes it available to be purchased again.
+     * @param purchaseToken The token of the purchase to consume.
+     */
     @UsedByGodot
-    fun consumePurchase(purchaseTokenLocal: String) {
-        //Log.v(pluginName, "Consuming purchase $savedPurchaseToken")
-        val consumeParams = ConsumeParams.newBuilder()
-            .setPurchaseToken(purchaseTokenLocal)
-            .build()
-        billingClient.consumeAsync(consumeParams) { billingResult, purchaseToken ->
-            val returnDict = Dictionary() // from Godot type Dictionary
+    fun consumePurchase(purchaseToken: String) {
+        if (!isReady) {
+            Log.e(pluginName, "Billing client is not ready. Cannot consume purchase.")
+            return
+        }
+        val consumeParams = ConsumeParams.newBuilder().setPurchaseToken(purchaseToken).build()
+        billingClient.consumeAsync(consumeParams) { billingResult, outToken ->
+            val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchase consumed successfully: $purchaseToken")
+                Log.v(pluginName, "Purchase consumed successfully: $outToken")
                 returnDict["response_code"] = billingResult.responseCode
-                returnDict["purchase_token"] = purchaseToken
+                returnDict["purchase_token"] = outToken
                 emitSignal(purchaseConsumedSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "Error purchase consuming, response code: ${billingResult.responseCode}")
+                Log.e(pluginName, "Error purchase consuming, response code: ${billingResult.responseCode}")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
-                returnDict["purchase_token"] = purchaseToken
+                returnDict["purchase_token"] = outToken
                 emitSignal(purchaseConsumedErrorSignal.name, returnDict)
             }
         }
     }
 
-
-    // Java style acknowledging purchase
+    /**
+     * Acknowledges a purchase.
+     * All purchases must be acknowledged within three days. Failure to acknowledge a purchase will result in the purchase being refunded.
+     * @param purchaseToken The token of the purchase to acknowledge.
+     */
     @UsedByGodot
-    private fun acknowledgePurchase(purchaseToken: String) {
-        val acknowledgePurchaseParams = AcknowledgePurchaseParams
-            .newBuilder()
-            .setPurchaseToken(purchaseToken)
-            .build()
+    fun acknowledgePurchase(purchaseToken: String) {
+        if (!isReady) {
+            Log.e(pluginName, "Billing client is not ready. Cannot acknowledge purchase.")
+            return
+        }
+        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchaseToken).build()
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            val returnDict = Dictionary() // from Godot type Dictionary
+            val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.v(pluginName, "Purchase acknowledged successfully: $purchaseToken")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseAcknowledgedSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "Error purchase acknowledging, response code: ${billingResult.responseCode}")
+                Log.e(pluginName, "Error purchase acknowledging, response code: ${billingResult.responseCode}")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchase_token"] = purchaseToken
@@ -673,10 +535,69 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         }
     }
 
+    /**
+     * Shows an in-app message to the user.
+     * This can be used to, for example, ask the user to update their payment method.
+     * This is a stub function and is not yet implemented.
+     */
+    @UsedByGodot
+    fun showInAppMessages() {
+        // This is a stub function.
+        // The implementation would involve calling the showInAppMessages API.
+        // See https://developer.android.com/google/play/billing/features/in-app-messaging
+        Log.w(pluginName, "showInAppMessages is not yet implemented.")
+        val returnDict = Dictionary()
+        returnDict["status"] = "not_implemented"
+        emitSignal(inAppMessageResultSignal.name, returnDict)
+    }
 
+    /**
+     * Launches the price change confirmation flow.
+     * This flow is used to ask the user to agree to a new price for a subscription.
+     * This is a stub function and is not yet implemented.
+     * @param productDetails The product details of the subscription with the pending price change.
+     */
+    @UsedByGodot
+    fun launchPriceChangeConfirmationFlow(productDetails: Dictionary) {
+        // This is a stub function.
+        // The implementation would involve creating a PriceChangeFlowParams object and
+        // calling billingClient.launchPriceChangeConfirmationFlow.
+        // See https://developer.android.com/google/play/billing/subscriptions#price-change
+        Log.w(pluginName, "launchPriceChangeConfirmationFlow is not yet implemented.")
+        val returnDict = Dictionary()
+        returnDict["status"] = "not_implemented"
+        emitSignal(priceChangeErrorSignal.name, returnDict)
+    }
+
+    /**
+     * Creates a reporting details object for an alternative billing transaction.
+     * This is a stub function and is not yet implemented.
+     * @return A Dictionary containing the reporting details.
+     */
+    @UsedByGodot
+    fun createAlternativeBillingOnlyReportingDetails(): Dictionary {
+        // This is a stub function.
+        // The implementation would involve calling the createAlternativeBillingOnlyReportingDetails API.
+        // See https://developer.android.com/google/play/billing/alternative
+        Log.w(pluginName, "createAlternativeBillingOnlyReportingDetails is not yet implemented.")
+        val returnDict = Dictionary()
+        returnDict["status"] = "not_implemented"
+        return returnDict
+    }
+
+    /**
+     * Reports an alternative billing only transaction to Google Play.
+     * This is a stub function and is not yet implemented.
+     * @param reportingDetails The reporting details for the transaction.
+     */
+    @UsedByGodot
+    fun reportAlternativeBillingOnlyTransaction(reportingDetails: Dictionary) {
+        // This is a stub function.
+        // The implementation would involve calling the reportAlternativeBillingOnlyTransaction API.
+        // See https://developer.android.com/google/play/billing/alternative
+        Log.w(pluginName, "reportAlternativeBillingOnlyTransaction is not yet implemented.")
+        val returnDict = Dictionary()
+        returnDict["status"] = "not_implemented"
+        emitSignal(alternativeBillingOnlyTransactionReportedSignal.name, returnDict)
+    }
 }
-
-
-
-
-
