@@ -126,7 +126,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
      */
     private fun requireActivityForPurchase(returnDict: Dictionary): Activity? {
         return activity?.also {
-            Log.v(pluginName, "Activity available for purchase (fun requireActivityForPurchase)")
+            Log.i(pluginName, "Activity available for purchase (fun requireActivityForPurchase)")
             returnDict["requireActivityForPurchase"] = "OK: Activity available for purchase"
             sendInfoSignal(returnDict)
         } ?: run {
@@ -145,10 +145,10 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     val isReady: Boolean
         get() {
             if (!::billingClient.isInitialized) {
-                Log.v(pluginName, "BillingClient is not initialized.")
+                Log.e(pluginName, "BillingClient is not initialized.")
                 return false
             }
-            Log.v(pluginName, "Is ready: ${billingClient.isReady}")
+            Log.i(pluginName, "Is ready: ${billingClient.isReady}")
             return billingClient.isReady
         }
 
@@ -159,15 +159,22 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
      */
     @UsedByGodot
     fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
+        val returnDict = Dictionary()
+        returnDict["fun_name"] = "sayHello"
+        returnDict["says"] = says
         if (activity == null) {
             Log.e(pluginName, "Cannot show Toast: Activity is null")
             emitSignal(helloResponseSignal.name, "Error: Activity is null")
+            returnDict["debug_message"] = "Cannot show Toast: Activity is null"
+            sendInfoSignal(returnDict)
             return
         }
         val postToast: () -> Unit = {
             Toast.makeText(activity, says, Toast.LENGTH_LONG).show()
-            emitSignal(helloResponseSignal.name, says)
             Log.i(pluginName, says)
+            emitSignal(helloResponseSignal.name, says)
+            returnDict["debug_message"] = says
+            sendInfoSignal(returnDict)
         }
 
         if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -230,8 +237,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
      */
     @UsedByGodot
     fun endConnection() {
+        val returnDict = Dictionary()
         if (::billingClient.isInitialized && billingClient.isReady) {
             Log.i(pluginName, "Ending billing service connection.")
+            returnDict["fun_name"] = "endConnection"
+            returnDict["debug_message"] = "Ending billing service connection."
+            sendInfoSignal(returnDict)
             billingClient.endConnection()
         }
     }
@@ -239,7 +250,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
     override fun onBillingServiceDisconnected() {
         emitSignal(disconnectedSignal.name)
-        Log.v(pluginName, "Billing service disconnected. Trying to reconnect...")
+        Log.i(pluginName, "Billing service disconnected. Trying to reconnect...")
         // Try to restart the connection on the next request to
         // Google Play by calling the startConnection() method.
     }
@@ -247,7 +258,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
     override fun onBillingSetupFinished(billingResult: BillingResult) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             emitSignal(connectedSignal.name)
-            Log.v(pluginName, "Billing service connected")
+            Log.i(pluginName, "Billing service connected")
         } else {
             Log.e(pluginName, "Billing setup failed with response code: ${billingResult.responseCode}")
             val returnDict = Dictionary()
@@ -273,12 +284,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
             val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchases found")
+                Log.i(pluginName, "Purchases found")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "No purchase found or an error occurred.")
+                Log.i(pluginName, "No purchase found or an error occurred.")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchases_list"] = null
@@ -314,12 +325,12 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, productDetailsList ->
             val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Product details found")
+                Log.i(pluginName, "Product details found")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
-                Log.v(pluginName, "No product details found or an error occurred.")
+                Log.i(pluginName, "No product details found or an error occurred.")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
@@ -357,7 +368,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             emitSignal(purchaseErrorSignal.name, returnDict)
             return
         }
-        Log.v(pluginName, "Starting purchase flow for $productID product")
+        Log.i(pluginName, "Starting purchase flow for $productID product")
 
         launchPurchaseFlow(activity, productID, ProductType.INAPP, null, isOfferPersonalized)
     }
@@ -386,7 +397,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
              return
         }
 
-        Log.v(pluginName, "Starting purchase flow for $productID subscription with base plan $basePlanID")
+        Log.i(pluginName, "Starting purchase flow for $productID subscription with base plan $basePlanID")
         launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, isOfferPersonalized)
     }
 
@@ -445,7 +456,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                 if (basePlanID != null) returnDict["base_plan_id"] = basePlanID
                 emitSignal(purchaseErrorSignal.name, returnDict)
             } else {
-                 Log.v(pluginName, "Product $productID purchasing launched successfully")
+                 Log.i(pluginName, "Product $productID purchasing launched successfully")
             }
         }
     }
@@ -456,20 +467,20 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
-                    Log.v(pluginName, "Purchases updated successfully")
+                    Log.i(pluginName, "Purchases updated successfully")
                     returnDict["response_code"] = billingResult.responseCode
                     returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
                     emitSignal(purchaseUpdatedSignal.name, returnDict)
                 }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
-                Log.v(pluginName, "User canceled purchase updating")
+                Log.i(pluginName, "User canceled purchase updating")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(purchaseCancelledSignal.name, returnDict)
             }
             else -> {
-                Log.v(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
+                Log.i(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(purchaseUpdatedErrorSignal.name, returnDict)
@@ -492,7 +503,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.consumeAsync(consumeParams) { billingResult, outToken ->
             val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchase consumed successfully: $outToken")
+                Log.i(pluginName, "Purchase consumed successfully: $outToken")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = outToken
                 emitSignal(purchaseConsumedSignal.name, returnDict)
@@ -521,7 +532,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             val returnDict = Dictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.v(pluginName, "Purchase acknowledged successfully: $purchaseToken")
+                Log.i(pluginName, "Purchase acknowledged successfully: $purchaseToken")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseAcknowledgedSignal.name, returnDict)
@@ -548,7 +559,10 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         Log.w(pluginName, "showInAppMessages is not yet implemented.")
         val returnDict = Dictionary()
         returnDict["status"] = "not_implemented"
+        returnDict["fun_name"] = "showInAppMessages"
+        returnDict["debug_message"] = "showInAppMessages is not yet implemented."
         emitSignal(inAppMessageResultSignal.name, returnDict)
+        sendInfoSignal(returnDict)
     }
 
     /**
@@ -566,7 +580,11 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         Log.w(pluginName, "launchPriceChangeConfirmationFlow is not yet implemented.")
         val returnDict = Dictionary()
         returnDict["status"] = "not_implemented"
+        returnDict["fun_name"] = "launchPriceChangeConfirmationFlow"
+        returnDict["debug_message"] = "launchPriceChangeConfirmationFlow is not yet implemented."
+        returnDict["see_details"] = "https://developer.android.com/google/play/billing/subscriptions#price-change"
         emitSignal(priceChangeErrorSignal.name, returnDict)
+        sendInfoSignal(returnDict)
     }
 
     /**
@@ -575,14 +593,18 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
      * @return A Dictionary containing the reporting details.
      */
     @UsedByGodot
-    fun createAlternativeBillingOnlyReportingDetails(): Dictionary {
+    fun createAlternativeBillingOnlyReportingDetails() {
         // This is a stub function.
         // The implementation would involve calling the createAlternativeBillingOnlyReportingDetails API.
         // See https://developer.android.com/google/play/billing/alternative
         Log.w(pluginName, "createAlternativeBillingOnlyReportingDetails is not yet implemented.")
         val returnDict = Dictionary()
         returnDict["status"] = "not_implemented"
-        return returnDict
+        returnDict["fun_name"] = "createAlternativeBillingOnlyReportingDetails"
+        returnDict["debug_message"] = "createAlternativeBillingOnlyReportingDetails is not yet implemented."
+        returnDict["see_details"] = "https://developer.android.com/google/play/billing/alternative"
+        // TODO: Implement own signal
+        sendInfoSignal(returnDict)
     }
 
     /**
@@ -598,6 +620,10 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
         Log.w(pluginName, "reportAlternativeBillingOnlyTransaction is not yet implemented.")
         val returnDict = Dictionary()
         returnDict["status"] = "not_implemented"
+        returnDict["fun_name"] = "reportAlternativeBillingOnlyTransaction"
+        returnDict["debug_message"] = "reportAlternativeBillingOnlyTransaction is not yet implemented."
+        returnDict["see_details"] = "https://developer.android.com/google/play/billing/alternative"
         emitSignal(alternativeBillingOnlyTransactionReportedSignal.name, returnDict)
+        sendInfoSignal(returnDict)
     }
 }
