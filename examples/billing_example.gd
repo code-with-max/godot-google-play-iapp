@@ -12,9 +12,9 @@
 
 extends Node
 
-signal product_details_received(product_id: String, price: String)
-signal purchase_successful(product_id: String)
-signal purchase_failed(product_id: String, error: Dictionary)
+
+signal already_buyed_updated
+signal product_showcase_updated
 
 
 # https://developer.android.com/reference/com/android/billingclient/api/Purchase.PurchaseState
@@ -43,6 +43,8 @@ enum billingResponseCode {
 	}
 
 
+const PLUGIN_NAME: String = "AndroidIAPP"
+
 const ITEM_CONSUMATED: Array = [
 				"additional_life_v1",
 				]
@@ -64,18 +66,16 @@ var billing = null
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	await get_tree().create_timer(1).timeout
+	# await get_tree().create_timer(0.4).timeout
 	run_iapp_billing()
 
 
 func run_iapp_billing():
-	if Engine.has_singleton("AndroidIAPP"):
+	if Engine.has_singleton(PLUGIN_NAME):
 		# Get the singleton instance of AndroidIAPP
-		billing = Engine.get_singleton("AndroidIAPP")
-		print("AndroidIAPP singleton loaded")
+		billing = Engine.get_singleton(PLUGIN_NAME)
 		
 		# Connection information
-		
 		# Handle the response from the helloResponse signal
 		billing.helloResponse.connect(_on_hello_response)
 		# Handle the startConnection signal
@@ -86,28 +86,24 @@ func run_iapp_billing():
 		billing.disconnected.connect(_on_disconnected)
 		
 		# Querying purchases
-		
 		# Handle the response from the query_purchases signal
 		billing.query_purchases.connect(_on_query_purchases)
 		# Handle the query_purchases_error signal
 		billing.query_purchases_error.connect(_on_query_purchases_error)
 		
 		# Querying products details
-		
 		# Handle the response from the query_product_details signal
-		billing.query_product_details.connect(query_product_details)
+		billing.query_product_details.connect(_on_query_product_details)
 		# Handle the query_product_details_error signal
 		billing.query_product_details_error.connect(_on_query_product_details_error)
 		
 		# Purchase processing
-		
 		# Handle the purchase signal
 		billing.purchase.connect(_on_purchase)
 		# Handle the purchase_error signal
 		billing.purchase_error.connect(_on_purchase_error)
 		
 		# Purchase updating
-		
 		# Handle the purchase_updated signal
 		billing.purchase_updated.connect(_on_purchase_updated)
 		# Handle the purchase_cancelled signal
@@ -116,66 +112,93 @@ func run_iapp_billing():
 		billing.purchase_update_error.connect(_on_purchase_update_error)
 		
 		# Purchase consuming
-		
 		# Handle the purchase_consumed signal
 		billing.purchase_consumed.connect(_on_purchase_consumed)
 		# Handle the purchase_consumed_error signal
 		billing.purchase_consumed_error.connect(_on_purchase_consumed_error)
 		
 		# Purchase acknowledging
-		
 		# Handle the purchase_acknowledged signal
 		billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
 		# Handle the purchase_acknowledged_error signal
 		billing.purchase_acknowledged_error.connect(_on_purchase_acknowledged_error)
+
+		# Billing Info signal
+		billing.billing_info.connect(_on_billing_info_received)
+
+		# Not implemented in plugin yet
+		billing.price_change_acknowledged.connect(_on_price_change_acknowledged)
+		billing.price_change_error.connect(_on_price_change_error)
+		billing.in_app_message_result.connect(_on_in_app_message_result)
+		billing.alternative_billing_only_transaction_reported.connect(_on_alternative_billing_only_transaction_reported)
+
+		await get_tree().create_timer(1).timeout
+		connect_to_billing()
 		
-		# Connection
+	else:
+		printerr("%s singleton not found" % PLUGIN_NAME)
+
+
+func connect_to_billing():
+	if billing and not billing.isReady():
+		print("%s: Starting connection to Google Play Billing..." % PLUGIN_NAME)
 		billing.startConnection()
 	else:
-		printerr("AndroidIAPP singleton not found")
+		print("%s: Billing is already connected" % PLUGIN_NAME)
+
+
+func disconnect_billing():
+	if billing and billing.isReady():
+		print("%s: Disconnecting from Google Play Billing..." % PLUGIN_NAME)
+		billing.endConnection()
+	else:
+		print("%s: Billing is already disconnected" % PLUGIN_NAME)
 
 
 func _on_start_connection() -> void:
-	print("Billing: start connection")
+	print("%s: start connection" % PLUGIN_NAME)
 
 
 func _on_connected() -> void:
-	print("Billing successfully connected")
-	await get_tree().create_timer(0.4).timeout
-	if billing.isReady():
-		# billing.sayHello("Hello from Godot Google IAPP plugin :)")
-		# Show products available to buy
-		# https://developer.android.com/google/play/billing/integrate#show-products
-		billing.queryProductDetails(ITEM_ACKNOWLEDGED, "inapp")
-		billing.queryProductDetails(ITEM_CONSUMATED, "inapp")
-		billing.queryProductDetails(SUBSCRIPTIONS, "subs")
-		# Handling purchases made outside your app
-		# https://developer.android.com/google/play/billing/integrate#ooap
-		billing.queryPurchases("subs")
-		billing.queryPurchases("inapp")
+	print("%s: Billing successfully connected" % PLUGIN_NAME)
+	G.inapp_already_connected = true
+	await get_tree().create_timer(0.2).timeout
+	billing.sayHello("Hello from Godot Google IAPP plugin :)")
+	# Show products available to buy
+	# https://developer.android.com/google/play/billing/integrate#show-products
+	billing.queryProductDetails(ITEM_ACKNOWLEDGED, "inapp")
+	billing.queryProductDetails(ITEM_CONSUMATED, "inapp")
+	billing.queryProductDetails(SUBSCRIPTIONS, "subs")
+	# Handling purchases made outside your app
+	# https://developer.android.com/google/play/billing/integrate#ooap
+	billing.queryPurchases("subs")
+	billing.queryPurchases("inapp")
+	# Test not implemented plugin functions responses
+	billing.showInAppMessages()
+	billing.createAlternativeBillingOnlyReportingDetails()
+
+
+
+func is_ready() -> bool:
+	return billing.isReady()
 
 
 func _on_disconnected() -> void:
-	print("Billing disconnected")
+	print("%s: Billing disconnected" % PLUGIN_NAME)
 
 
 func _on_hello_response(response) -> void:
-	print("Hello signal response: " + response)
+	print("%s: Hello signal response: %s" % [PLUGIN_NAME, response])
 
 
-func query_product_details(response) -> void:
+func _on_query_product_details(response) -> void:
 	for product in response["product_details_list"]:
-		#var product = response["product_details_list"][i]
-		#print(JSON.stringify(product["product_id"], "  "))
-		var product_id = product["product_id"]
-		var price = product["one_time_purchase_offer_details"]["formatted_price"]
-		product_details_received.emit(product_id, price)
-		#
-		# Handle avaible for purchase product details here
-		#
+		G.product_showcase.append(product)
+	product_showcase_updated.emit()
+
 
 func _on_query_purchases(response) -> void:
-	print("on_query_Purchases_response: ")
+	print("%s: on_query_Purchases_response: " % PLUGIN_NAME)
 	for purchase in response["purchases_list"]:
 		process_purchase(purchase)
 
@@ -190,23 +213,51 @@ func process_purchase(purchase):
 	for product in purchase["products"]:
 		if (product in ITEM_ACKNOWLEDGED) or (product in SUBSCRIPTIONS):
 			# Acknowledge the purchase
-			if not purchase["is_acknowledged"]:
-				print("Acknowledging: " + purchase["purchase_token"])
-				billing.acknowledgePurchase(purchase["purchase_token"])
-				#
-				# Here, process the use of the product in your game.
-				#
-			else:
-				print("Already acknowledged")
+			process_acknowledged(purchase)
 		elif product in ITEM_CONSUMATED:
 			# Consume the purchase
-			print("Consuming: " + purchase["purchase_token"])
-			billing.consumePurchase(purchase["purchase_token"])
-			#
-			# Here, process the use of the product in your game.
-			#
+			process_consumed(purchase)
 		else:
-			print("Product not found: " + str(product))
+			# Product not found in app showcase
+			print("%s: Product not found in app showcase: %s" % [PLUGIN_NAME, str(purchase["products"])])
+
+
+func process_acknowledged(purchase):
+	for product in purchase["products"]:
+		if purchase["is_acknowledged"]:
+			# Already acknowledged, proccesing it in game
+			print("%s: Already acknowledged: %s" % [PLUGIN_NAME, str(purchase["products"])])
+			update_already_buyed(product)
+		else:
+			if purchase["purchase_state"] == 1:
+				# Money already received
+				print("%s: Acknowledging: %s" % [PLUGIN_NAME, str(purchase["products"])])
+				billing.acknowledgePurchase(purchase["purchase_token"])
+				update_already_buyed(product)
+			else:
+				# Just waiting for money  and do nothing
+				print("%s: Product pending: %s" % [PLUGIN_NAME, str(purchase["products"])])
+
+
+func process_consumed(purchase):
+	for product in purchase["products"]:
+		if not purchase["purchase_state"] == 1:
+			# Just waiting for money  and do nothing
+			print("%s: Product pending: %s" % [PLUGIN_NAME, str(purchase["products"])])
+		else:
+			# Money already received, proccesing it in game
+			match product:
+				"additional_life_v1":
+					# Add 1 life
+					billing.consumePurchase(purchase["purchase_token"])
+					G.increase_lives()
+
+
+# Use "products": ["blue_skin_v1"] from purchased product
+func update_already_buyed(p):
+	G.already_buyed.append(p)
+	already_buyed_updated.emit()
+	print("%s: %s : added to already_buyed list" % [PLUGIN_NAME, p])
 
 
 # Purchase
@@ -218,50 +269,93 @@ func do_subsciption(subscription_id: String, base_plan_id: String , is_personali
 	billing.subscribe([subscription_id], [base_plan_id], is_personalized)
 
 
-func print_purchases(purchases):
+func print_purchases(purchases: Dictionary):
 	for purchase in purchases:
-		print(JSON.stringify(purchase, "  "))
+		_print_json_with_prefix(PLUGIN_NAME, purchase)
 
 
-func _on_purchase(response) -> void:
-	print("Purchase started:")
+func _on_purchase(response: Dictionary) -> void:
+	print("%s: Purchase started:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, response)
+
+
+func _on_purchase_cancelled(response: Dictionary) -> void:
+	print("%s: Purchase_cancelled:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, response)
+
+
+func _on_purchase_consumed(response: Dictionary) -> void:
+	print("%s: Purchase_consumed:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, response)
+
+
+func _on_purchase_acknowledged(response: Dictionary) -> void:
+	print("%s: Purchase_acknowledged:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, response)
+
+
+func _on_purchase_update_error(error: Dictionary) -> void:
+	print("%s: Purchase_update_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_purchase_error(error: Dictionary) -> void:
+	print("%s: Purchase_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_purchase_consumed_error(error: Dictionary) -> void:
+	print("%s: Purchase_consumed_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_purchase_acknowledged_error(error: Dictionary) -> void:
+	print("%s: Purchase_acknowledged_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_query_purchases_error(error: Dictionary) -> void:
+	print("%s: Query_purchases_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_query_product_details_error(error: Dictionary) -> void:
+	print("%s: Query_product_details_error:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, error)
+
+
+func _on_billing_info_received(info: Dictionary) -> void:
+	print("%s: Billing_info_received:" % PLUGIN_NAME)
+	_print_json_with_prefix(PLUGIN_NAME, info)
+
+
+
+# Helpers
+func _print_json_with_prefix(prefix: String, data: Dictionary) -> void:
+	var json_string = JSON.stringify(data, "  ")
+	for line in json_string.split("\n"):
+		print("%s: %s" % [prefix, line])
+
+
+# Not implemented in plugin yet
+# Return mock response with error
+
+func _on_price_change_acknowledged(response: Dictionary) -> void:
+	# Newer will be received, because plugin does not support it yet
+	print("%s: Price_change_acknowledged:" % PLUGIN_NAME)
 	print(JSON.stringify(response, "  "))
 
 
-func _on_purchase_cancelled(response) -> void:
-	print("Purchase_cancelled:")
+func _on_price_change_error(error: Dictionary) -> void:
+	print("%s: Price_change_error:" % PLUGIN_NAME)
+	print(JSON.stringify(error, "  "))
+
+
+func _on_in_app_message_result(response: Dictionary) -> void:
+	print("%s: In_app_message_result:" % PLUGIN_NAME)
 	print(JSON.stringify(response, "  "))
 
 
-func _on_purchase_consumed(response) -> void:
-	print("Purchase_consumed:")
+func _on_alternative_billing_only_transaction_reported(response: Dictionary) -> void:
+	print("%s: Alternative_billing_only_transaction_reported:" % PLUGIN_NAME)
 	print(JSON.stringify(response, "  "))
-
-
-func _on_purchase_acknowledged(response) -> void:
-	print("Purchase_acknowledged:")
-	print(JSON.stringify(response, "  "))
-
-
-func _on_purchase_update_error(error) -> void:
-	print(JSON.stringify(error, "  "))
-
-
-func _on_purchase_error(error) -> void:
-	print(JSON.stringify(error, "  "))
-
-
-func _on_purchase_consumed_error(error) -> void:
-	print(JSON.stringify(error, "  "))
-
-
-func _on_purchase_acknowledged_error(error) -> void:
-	print(JSON.stringify(error, "  "))
-
-
-func _on_query_purchases_error(error) -> void:
-	print(JSON.stringify(error, "  "))
-
-
-func _on_query_product_details_error(error) -> void:
-	print(JSON.stringify(error, "  "))

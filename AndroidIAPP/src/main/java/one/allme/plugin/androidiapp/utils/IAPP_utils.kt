@@ -5,177 +5,153 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import org.godotengine.godot.Dictionary
 
-
+/**
+ * A utility object for converting Google Play Billing Library objects to Godot Dictionaries.
+ */
 object IAPP_utils {
 
-    // Convert list of purchases to array
-    // https://developer.android.com/reference/com/android/billingclient/api/PurchasesUpdatedListener
-    fun convertPurchasesListToArray(purchasesList: List<Purchase>): Array<Any?> {
-        val purchasesArray = arrayOfNulls<Any>(purchasesList.size)
-        for (i in purchasesList.indices) {
-            purchasesArray[i] = convertPurchaseToDictionary(purchasesList[i])
-        }
-        return purchasesArray
+    /**
+     * Converts a list of [Purchase] objects to a Godot Array of Dictionaries.
+     * @param purchasesList The list of purchases to convert.
+     * @return An Array of Dictionaries, where each Dictionary represents a purchase.
+     */
+    fun convertPurchasesListToArray(purchasesList: List<Purchase>): Array<Any> {
+        return purchasesList.map { convertPurchaseToDictionary(it) }.toTypedArray()
     }
 
-    // https://developer.android.com/reference/com/android/billingclient/api/Purchase
+    /**
+     * Converts a single [Purchase] object to a Godot Dictionary.
+     * @param purchase The purchase object to convert.
+     * @return A Dictionary representing the purchase.
+     */
     private fun convertPurchaseToDictionary(purchase: Purchase): Dictionary {
-        val dictionary = Dictionary() // from Godot type Dictionary
-//        dictionary["equals"] = purchase.equals() // TODO check this method
-        dictionary["account_identifiers"] = purchase.accountIdentifiers
-        dictionary["developer_payload"] = purchase.developerPayload
-        dictionary["order_id"] = purchase.orderId
-        dictionary["original_json"] = purchase.originalJson
-        dictionary["package_name"] = purchase.packageName
-        dictionary["pending_purchase_update"] = purchase.pendingPurchaseUpdate
-        dictionary["products"] = convertPurchaseProductsIdsListToArray(purchase.products) // list of string
-        dictionary["purchase_state"] = purchase.purchaseState
-        dictionary["purchase_time"] = purchase.purchaseTime
-        dictionary["purchase_token"] = purchase.purchaseToken
-        dictionary["quantity"] = purchase.quantity
-        dictionary["signature"] = purchase.signature
-        dictionary["hash_code"] = purchase.hashCode()
-        dictionary["is_acknowledged"] = purchase.isAcknowledged
-        dictionary["is_auto_renewing"] = purchase.isAutoRenewing
-        dictionary["to_string"] = purchase.toString()
-        return dictionary
-    }
-
-
-    // Returns the product Ids.
-    // Convert list of purchase products to array
-    // https://developer.android.com/reference/com/android/billingclient/api/Purchase#getProducts()
-    private fun convertPurchaseProductsIdsListToArray(purchaseProductsList: List<String>): Array<Any?> {
-        val purchaseProductsArray = arrayOfNulls<Any>(purchaseProductsList.size)
-        for (i in purchaseProductsList.indices) {
-            purchaseProductsArray[i] = purchaseProductsList[i]
+        return Dictionary().apply {
+            put("account_identifiers", purchase.accountIdentifiers)
+            put("developer_payload", purchase.developerPayload)
+            put("order_id", purchase.orderId)
+            put("original_json", purchase.originalJson)
+            put("package_name", purchase.packageName)
+            put("pending_purchase_update", purchase.pendingPurchaseUpdate)
+            put("products", purchase.products.toTypedArray())
+            put("purchase_state", purchase.purchaseState)
+            put("purchase_time", purchase.purchaseTime)
+            put("purchase_token", purchase.purchaseToken)
+            put("quantity", purchase.quantity)
+            put("signature", purchase.signature)
+            put("hash_code", purchase.hashCode())
+            put("is_acknowledged", purchase.isAcknowledged)
+            put("is_auto_renewing", purchase.isAutoRenewing)
+            put("to_string", purchase.toString())
         }
-        return purchaseProductsArray
     }
 
-
-    // Product Details utils below
-    // Convert list of detailed product details to array
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetailsResponseListener
-    // Called from: queryProductDetails
-    fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>): Array<Any?> {
-        val productDetailsArray = arrayOfNulls<Any>(productDetailsList.size)
-        for (i in productDetailsList.indices) {
-            productDetailsArray[i] = convertProductDetailsToDictionary(productDetailsList[i])
-        }
-        return productDetailsArray
+    /**
+     * Converts a list of [ProductDetails] objects to a Godot Array of Dictionaries.
+     * @param productDetailsList The list of product details to convert.
+     * @return An Array of Dictionaries, where each Dictionary represents a product's details.
+     */
+    fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>): Array<Any> {
+        return productDetailsList.map { convertProductDetailsToDictionary(it) }.toTypedArray()
     }
 
-
-    // Convert product details to dictionary
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails
+    /**
+     * Converts a single [ProductDetails] object to a Godot Dictionary.
+     * @param productsDetails The product details object to convert.
+     * @return A Dictionary representing the product's details.
+     */
     private fun convertProductDetailsToDictionary(productsDetails: ProductDetails): Dictionary {
-        val dictionary = Dictionary()  // from Godot type Dictionary
-        dictionary["description"] = productsDetails.description
-        dictionary["name"] = productsDetails.name
-        dictionary["product_id"] = productsDetails.productId
-        dictionary["product_type"] = productsDetails.productType
-        dictionary["title"] = productsDetails.title
-        dictionary["hash_code"] = productsDetails.hashCode()
-        dictionary["to_string"] = productsDetails.toString()
-        if (productsDetails.productType == BillingClient.ProductType.INAPP) {
-            dictionary["one_time_purchase_offer_details"] = convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails)
-        } else if (productsDetails.productType == BillingClient.ProductType.SUBS) {
-            dictionary["subscription_offer_details"] = convertSubscriptionsDetailsListToArray(productsDetails.subscriptionOfferDetails)
+        return Dictionary().apply {
+            put("description", productsDetails.description)
+            put("name", productsDetails.name)
+            put("product_id", productsDetails.productId)
+            put("product_type", productsDetails.productType)
+            put("title", productsDetails.title)
+            put("hash_code", productsDetails.hashCode())
+            put("to_string", productsDetails.toString())
+            if (productsDetails.productType == BillingClient.ProductType.INAPP) {
+                put("one_time_purchase_offer_details", convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails))
+            } else if (productsDetails.productType == BillingClient.ProductType.SUBS) {
+                put("subscription_offer_details", convertSubscriptionsDetailsListToArray(productsDetails.subscriptionOfferDetails))
+            }
         }
-        return dictionary
     }
 
-
-    // (INAPP)
-    // Convert One Time Purchase Offer Details to Dictionary
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.OneTimePurchaseOfferDetails
+    /**
+     * Converts a [ProductDetails.OneTimePurchaseOfferDetails] object to a Godot Dictionary.
+     * @param offerDetails The one-time purchase offer details to convert.
+     * @return A Dictionary representing the one-time purchase offer details.
+     */
     private fun convertPurchaseOfferToDict(offerDetails: ProductDetails.OneTimePurchaseOfferDetails?): Dictionary {
-        val dictionary = Dictionary()  // from Godot type Dictionary
-        if (offerDetails != null) {
-            dictionary["formatted_price"] = offerDetails.formattedPrice
-            dictionary["price_currency_code"] = offerDetails.priceCurrencyCode
-            dictionary["price_amount_micros"] = offerDetails.priceAmountMicros
-        }
-        return dictionary
-    }
-
-
-    // (SUBS)
-    // Convert list of subscriptions offers to array
-    // yeah, lot of not Null checks :(
-    private fun convertSubscriptionsDetailsListToArray(subscriptionsOffersList: List<ProductDetails.SubscriptionOfferDetails>?): Array<Any?>? {
-        val subscriptionsOffersArray = subscriptionsOffersList?.let { arrayOfNulls<Any>(it.size) }
-        if (subscriptionsOffersList != null) {
-            for (i in subscriptionsOffersList.indices) {
-                subscriptionsOffersArray?.set(i, convertSubscriptionDetailsToDictionary(subscriptionsOffersList[i]))
+        return Dictionary().apply {
+            offerDetails?.let {
+                put("formatted_price", it.formattedPrice)
+                put("price_currency_code", it.priceCurrencyCode)
+                put("price_amount_micros", it.priceAmountMicros)
             }
         }
-        return subscriptionsOffersArray
     }
 
-    // Convert subscription offer details to dictionary
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.SubscriptionOfferDetails
+    /**
+     * Converts a list of [ProductDetails.SubscriptionOfferDetails] objects to a Godot Array of Dictionaries.
+     * @param subscriptionsOffersList The list of subscription offer details to convert.
+     * @return An Array of Dictionaries, where each Dictionary represents a subscription offer's details.
+     */
+    private fun convertSubscriptionsDetailsListToArray(subscriptionsOffersList: List<ProductDetails.SubscriptionOfferDetails>?): Array<Any>? {
+        return subscriptionsOffersList?.map { convertSubscriptionDetailsToDictionary(it) }?.toTypedArray()
+    }
+
+    /**
+     * Converts a single [ProductDetails.SubscriptionOfferDetails] object to a Godot Dictionary.
+     * @param offerDetails The subscription offer details to convert.
+     * @return A Dictionary representing the subscription offer's details.
+     */
     private fun convertSubscriptionDetailsToDictionary(offerDetails: ProductDetails.SubscriptionOfferDetails): Dictionary {
-        val dictionary = Dictionary()  // from Godot type Dictionary
-        dictionary["base_plan_id"] = offerDetails.basePlanId
-        dictionary["installment_plan_details"] = convertInstallementPlanDetailsToArray(offerDetails.installmentPlanDetails)
-        dictionary["offer_id"] = offerDetails.offerId
-        dictionary["offer_tags"] = convertOfferTagsListToArray(offerDetails.offerTags) // list of String
-        dictionary["offer_token"] = offerDetails.offerToken
-        dictionary["pricing_phases"] = convertPricingPhasesListToArray(offerDetails.pricingPhases.pricingPhaseList)
-        return dictionary
-    }
-
-    // Convert list of subscriptions offers to array
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.SubscriptionOfferDetails#getOfferTags()
-    // yeah, lot of not Null checks :(
-    private fun convertOfferTagsListToArray(offerTagsList: List<String>?): Array<Any?>? {
-        val offerTagsArray = offerTagsList?.let { arrayOfNulls<Any>(it.size) }
-        if (offerTagsList != null){
-            for (i in offerTagsList.indices) {
-                offerTagsArray?.set(i, (offerTagsList[i]))
-            }
+        return Dictionary().apply {
+            put("base_plan_id", offerDetails.basePlanId)
+            put("installment_plan_details", convertInstallmentPlanDetailsToDictionary(offerDetails.installmentPlanDetails))
+            put("offer_id", offerDetails.offerId)
+            put("offer_tags", offerDetails.offerTags.toTypedArray())
+            put("offer_token", offerDetails.offerToken)
+            put("pricing_phases", convertPricingPhasesListToArray(offerDetails.pricingPhases.pricingPhaseList))
         }
-        return offerTagsArray
     }
 
-
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.PricingPhases
-    private fun convertPricingPhasesListToArray(phasesList: MutableList<ProductDetails.PricingPhase>?): Array<Any?>? {
-        val phasesArray = phasesList?.let { arrayOfNulls<Any>(it.size) }
-        if (phasesList != null) {
-            for (i in phasesList.indices) {
-                phasesArray?.set(i, convertPricingPhaseToDictionary(phasesList[i]))
-            }
-        }
-        return phasesArray
+    /**
+     * Converts a list of [ProductDetails.PricingPhase] objects to a Godot Array of Dictionaries.
+     * @param phasesList The list of pricing phases to convert.
+     * @return An Array of Dictionaries, where each Dictionary represents a pricing phase.
+     */
+    private fun convertPricingPhasesListToArray(phasesList: List<ProductDetails.PricingPhase>?): Array<Any>? {
+        return phasesList?.map { convertPricingPhaseToDictionary(it) }?.toTypedArray()
     }
 
-
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.PricingPhase
+    /**
+     * Converts a single [ProductDetails.PricingPhase] object to a Godot Dictionary.
+     * @param phase The pricing phase to convert.
+     * @return A Dictionary representing the pricing phase.
+     */
     private fun convertPricingPhaseToDictionary(phase: ProductDetails.PricingPhase): Dictionary {
-        val dictionary = Dictionary()  // from Godot type Dictionary
-        dictionary["billing_cycle_count"] = phase.billingCycleCount
-        dictionary["billing_period"] = phase.billingPeriod
-        dictionary["formatted_price"] = phase.formattedPrice
-        dictionary["price_amount_micros"] = phase.priceAmountMicros
-        dictionary["price_currency_code"] = phase.priceCurrencyCode
-        dictionary["recurrence_mode"] = phase.recurrenceMode
-        return dictionary
-    }
-
-
-    // https://developer.android.com/reference/com/android/billingclient/api/ProductDetails.InstallmentPlanDetails
-    private fun convertInstallementPlanDetailsToArray(planDetails: ProductDetails.InstallmentPlanDetails?): Dictionary {
-        val dictionary = Dictionary()  // from Godot type Dictionary
-        if (planDetails != null) {
-            dictionary["installment_plan_commitment_payments_count"] = planDetails.installmentPlanCommitmentPaymentsCount
-            dictionary["subsequent_installment_plan_commitment_payments_count"] = planDetails.subsequentInstallmentPlanCommitmentPaymentsCount
+        return Dictionary().apply {
+            put("billing_cycle_count", phase.billingCycleCount)
+            put("billing_period", phase.billingPeriod)
+            put("formatted_price", phase.formattedPrice)
+            put("price_amount_micros", phase.priceAmountMicros)
+            put("price_currency_code", phase.priceCurrencyCode)
+            put("recurrence_mode", phase.recurrenceMode)
         }
-        return dictionary
     }
 
+    /**
+     * Converts a [ProductDetails.InstallmentPlanDetails] object to a Godot Dictionary.
+     * @param planDetails The installment plan details to convert.
+     * @return A Dictionary representing the installment plan details.
+     */
+    private fun convertInstallmentPlanDetailsToDictionary(planDetails: ProductDetails.InstallmentPlanDetails?): Dictionary {
+        return Dictionary().apply {
+            planDetails?.let {
+                put("installment_plan_commitment_payments_count", it.installmentPlanCommitmentPaymentsCount)
+                put("subsequent_installment_plan_commitment_payments_count", it.subsequentInstallmentPlanCommitmentPaymentsCount)
+            }
+        }
+    }
 }
-
-
