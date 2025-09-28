@@ -33,20 +33,10 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
   else:
       return PackedStringArray(["AndroidIAPP-release.aar"])
   ```
-- Add the plugin as an AutoLoad script (e.g., `res://addons/android_iapp/iap.gd`):
-  1. Go to `Project > Project Settings > AutoLoad`.
-  2. Add the script and enable it.
-- Add the following dependency in your `app/build.gradle`:
-  ```gradle
-  dependencies {
-      implementation 'com.android.billingclient:billing:7.1.1'
-  }
+- Use logcat to check the logs:
+  ```shell
+  ./adb logcat | grep IAPP
   ```
-- Add the billing permission in `Project > Export > Permissions > Custom Permissions`:
-  ```
-  com.android.vending.BILLING
-  ```
-- Run `./gradlew build` to verify the build.
 
 ## Examples
 
