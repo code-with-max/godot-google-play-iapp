@@ -349,7 +349,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
 
         val returnDict = Dictionary()
         returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
-        returnDict["debug_message"] = "Activity is null"
+        returnDict["debug_message"] = "Purchase called"
         returnDict["product_id"] = if (listOfProductsIDs.isNotEmpty()) listOfProductsIDs[0] else ""
 
         val activity = requireActivityForPurchase(returnDict) ?: return
