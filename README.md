@@ -23,27 +23,6 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 > [!NOTE]
 > Don't forget to enable the plugin in `Project > Project Settings > Plugins`.
 
-## SIMPLE DEBUG
-
-- Ensure the plugin is activated in `Project > Project Settings > Plugins`.
-- Check `AndroidIAPP.gd` to confirm the correct path to the AAR file:
-  ```gdscript
-  if debug:
-      return PackedStringArray(["AndroidIAPP-debug.aar"])
-  else:
-      return PackedStringArray(["AndroidIAPP-release.aar"])
-  ```
-- Use logcat to check the logs:
-  ```shell
-  ./adb logcat | grep IAPP
-  ```
-
-## Examples
-
-- [Example script](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd) for working with the plugin.
-- [Another example](https://gist.github.com/code-with-max/56881cbb3796a19a68d8eabd819d6ff7).
-- [Sample AutoLoad script](https://gist.github.com/nitish800/60a1f3b6e746805b67a68395ca8f4ca6) to initialize the plugin and handle signals.
-
 ## Before Start
 
 - **Purchase Types**:
@@ -59,7 +38,68 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 
 - **Godot Compatibility**: Tested with Godot 4.5. Kotlin coroutines are not supported in Godot 4.2 or earlier.
 
-## Signals Descriptions
+## Debugging
+
+- Ensure the plugin is activated in `Project > Project Settings > Plugins`.
+- Check `AndroidIAPP.gd` to confirm the correct path to the AAR file:
+  ```gdscript
+  if debug:
+      return PackedStringArray(["AndroidIAPP-debug.aar"])
+  else:
+      return PackedStringArray(["AndroidIAPP-release.aar"])
+  ```
+- Use logcat to check the logs:
+  ```shell
+  ./adb logcat | grep IAPP
+  ```
+
+## Usage Example
+
+A full example of how to work with the plugin can be found in [`billing_example.gd`](https://github.com/code-with-max/godot-google-play-iapp/blob/master/examples/billing_example.gd).
+
+Here is how you can initialize the plugin and connect to its signals:
+
+```gdscript
+extends Node
+
+const PLUGIN_NAME: String = "AndroidIAPP"
+var billing = null
+
+func _ready() -> void:
+	if Engine.has_singleton(PLUGIN_NAME):
+		billing = Engine.get_singleton(PLUGIN_NAME)
+
+		# Connect to signals
+		billing.connected.connect(_on_connected)
+		billing.disconnected.connect(_on_disconnected)
+		billing.query_purchases.connect(_on_query_purchases)
+		billing.query_purchases_error.connect(_on_query_purchases_error)
+		billing.query_product_details.connect(_on_query_product_details)
+		billing.query_product_details_error.connect(_on_query_product_details_error)
+		billing.purchase_updated.connect(_on_purchase_updated)
+		billing.purchase_cancelled.connect(_on_purchase_cancelled)
+		billing.purchase_update_error.connect(_on_purchase_update_error)
+		billing.purchase_consumed.connect(_on_purchase_consumed)
+		billing.purchase_consumed_error.connect(_on_purchase_consumed_error)
+		billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
+		billing.purchase_acknowledged_error.connect(_on_purchase_acknowledged_error)
+
+		# Start the connection
+		if not billing.isReady:
+			billing.startConnection()
+	else:
+		printerr("%s singleton not found" % PLUGIN_NAME)
+
+func _on_connected() -> void:
+	print("%s: Billing successfully connected" % PLUGIN_NAME)
+	# Now you can query for products and purchases
+	billing.queryProductDetails(ITEM_ACKNOWLEDGED, "inapp")
+	billing.queryPurchases("inapp")
+
+# ... other signal handlers
+```
+
+## Signals
 
 ### Test Signal
 - `helloResponse`: Emitted when a response to a hello message is received.
@@ -95,6 +135,8 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
   - **Returns**: `Dictionary`
     - `response_code`: Integer.
     - `purchases_list`: Array of Dictionaries (e.g., `{"product_id": "blue_skin_v1", "purchase_token": "...", "is_acknowledged": false}`).
+- `purchase`: Emitted when a purchase flow is successfully initiated.
+  - **Returns**: `Dictionary`
 - `purchase_error`: Emitted on purchase errors.
   - **Returns**: `Dictionary`
     - `response_code`: Integer.
@@ -127,6 +169,15 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
     - `response_code`: Integer.
     - `debug_message`: String.
     - `purchase_token`: String.
+- `billing_info`: An informational signal for debugging.
+  - **Returns**: `Dictionary`
+    - `plugin_name`: String.
+    - `fun_name`: String (e.g., `"sayHello"`, `"startConnection"`).
+    - `debug_message`: String.
+- `price_change_acknowledged`: **Not implemented.**
+- `price_change_error`: **Not implemented.**
+- `in_app_message_result`: **Not implemented.**
+- `alternative_billing_only_transaction_reported`: **Not implemented.**
 
 ## Functions
 
@@ -134,10 +185,12 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 - Emits: `startConnection`, `connected`, or `disconnected` (if activity is unavailable).
 - **Warning**: Ensure the plugin is initialized after Godot's Android activity is available.
 
-`isReady()`: Checks if the billing connection is ready.
+`endConnection()`: Ends the connection to the Google Play Billing service.
+
+`isReady`: Checks if the billing connection is ready.
 - **Returns**: `bool`.
 
-`sayHello(message: String = "Hello from AndroidIAPP plugin")`: Sends a test message.
+`sayHello(says: String)`: Sends a test message.
 - Emits: `helloResponse`.
 - Displays a Toast and logs to the console.
 - **Warning**: May fail with `"Error: Activity is null"` if called too early. Avoid in production.
@@ -145,136 +198,133 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 `queryPurchases(productType: String)`: Queries purchases.
 - `productType`: `"inapp"` or `"subs"`.
 - Emits: `query_purchases` or `query_purchases_error`.
-- **Note**: Call after `connected` signal to ensure billing is ready.
-- **Warning**: Due to Godot JNI limitations, `productType` must be specified. Future updates may include `queryInAppPurchases()` and `querySubscriptions()`.
 
-`queryProductDetails(productId: List<String>, productType: String)`: Queries product or subscription details.
-- `productId`: List of product/subscription IDs (must not be empty).
+`queryProductDetails(listOfProductsIDs: Array<String>, productType: String)`: Queries product or subscription details.
+- `listOfProductsIDs`: List of product/subscription IDs (must not be empty).
 - `productType`: `"inapp"` or `"subs"`.
 - Emits: `query_product_details` or `query_product_details_error`.
-- **Warning**: Passing an empty `productId` list or incorrect `productType` triggers `query_product_details_error`.
 
-`purchase(product_id: List<String>, is_personalized: bool)`: Initiates a product purchase.
-- `product_id`: List of product IDs (must not be empty).
-- `is_personalized`: Set to `false` unless complying with [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528) (see [details](https://developer.android.com/google/play/billing/integrate#personalized-price)).
+`purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: bool)`: Initiates a product purchase.
+- `listOfProductsIDs`: List of product IDs (must not be empty).
+- `isOfferPersonalized`: Set to `false` unless complying with [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528) (see [details](https://developer.android.com/google/play/billing/integrate#personalized-price)).
 - Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
-- **Warning**: Empty or invalid `product_id` triggers `purchase_error`.
 - **Important**: Call `consumePurchase` or `acknowledgePurchase` to complete the transaction.
 
-`subscribe(subscription_id: List<String>, base_plan_id: List<String>, is_personalized: bool)`: Initiates a subscription.
-- `subscription_id`, `base_plan_id`: Lists of IDs (must not be empty).
-- `is_personalized`: Set to `false` unless complying with EU directive.
+`subscribe(listOfProductsIDs: Array<String>, basePlanIDs: Array<String>, isOfferPersonalized: bool)`: Initiates a subscription.
+- `listOfProductsIDs`, `basePlanIDs`: Lists of IDs (must not be empty).
+- `isOfferPersonalized`: Set to `false` unless complying with EU directive.
 - Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
-- **Warning**: Empty or invalid `subscription_id`/`base_plan_id` triggers `purchase_error`.
 - **Important**: Call `acknowledgePurchase` to complete the subscription.
 
-`consumePurchase(purchase_token: String)`: Consumes a purchase.
-- `purchase_token`: Token from `purchase_updated` response.
+`consumePurchase(purchaseToken: String)`: Consumes a purchase.
+- `purchaseToken`: Token from `purchase_updated` response.
 - Emits: `purchase_consumed` or `purchase_consumed_error`.
-- **Warning**: Invalid or empty `purchase_token` triggers `purchase_consumed_error`.
 
-`acknowledgePurchase(purchase_token: String)`: Acknowledges a purchase or subscription.
-- `purchase_token`: Token from `purchase_updated` response.
+`acknowledgePurchase(purchaseToken: String)`: Acknowledges a purchase or subscription.
+- `purchaseToken`: Token from `purchase_updated` response.
 - Emits: `purchase_acknowledged` or `purchase_acknowledged_error`.
-- **Warning**: Invalid or empty `purchase_token` triggers `purchase_acknowledged_error`.
 
-## Step-by-step Set Up Guide
+### Not Implemented Functions
+The following functions are included in the plugin as stubs but are not yet implemented:
+- `showInAppMessages()`
+- `launchPriceChangeConfirmationFlow(productDetails: Dictionary)`
+- `createAlternativeBillingOnlyReportingDetails()`
+- `reportAlternativeBillingOnlyTransaction(reportingDetails: Dictionary)`
 
-### 1. Connecting to the Google Play Billing Library
-1. Enable the plugin in `Project > Project Settings > Plugins`.
-2. Add `com.android.vending.BILLING` permission in `Project > Export > Permissions > Custom Permissions`.
-3. Add an AutoLoad script (e.g., `iap.gd`) to initialize the plugin:
-   ```gdscript
-   extends Node
-   var billing = null
-   func _ready():
-       if Engine.has_singleton("AndroidIAPP"):
-           billing = Engine.get_singleton("AndroidIAPP")
-           billing.connected.connect(_on_connected)
-           billing.disconnected.connect(_on_disconnected)
-           billing.startConnection()
-       else:
-           printerr("AndroidIAPP singleton not found!")
-   func _on_connected():
-       print("Connected to Google Play Billing")
-   func _on_disconnected():
-       print("Billing disconnected")
-   ```
+## Implementation Guide
 
-### 2. Requesting a List of Products and Subscriptions
-- Query product details:
-  ```gdscript
-  billing.queryProductDetails(["blue_skin_v1"], "inapp")
-  billing.query_product_details.connect(_on_query_product_details)
-  func _on_query_product_details(response):
-      for product in response.product_details_list:
-          print("Product: ", product.name, ", Price: ", product.one_time_purchase_offer_details.formatted_price)
-  ```
-- Query purchases:
-  ```gdscript
-  billing.queryPurchases("inapp")
-  billing.query_purchases.connect(_on_query_purchases)
-  func _on_query_purchases(response):
-      for purchase in response.purchases_list:
-          print("Purchase: ", purchase.products, ", State: ", purchase.purchase_state)
-  ```
+### 1. Querying for Available Products
+Once connected, you should query for the products you have set up in the Google Play Console.
 
-### 3. Handling Purchases and Subscriptions
-- Make a purchase:
-  ```gdscript
-  billing.purchase(["blue_skin_v1"], false)
-  billing.purchase_updated.connect(_on_purchase_updated)
-  func _on_purchase_updated(response):
-      for purchase in response.purchases_list:
-          if purchase.purchase_state == 1:  # PURCHASED
-              if purchase.products.has("blue_skin_v1"):
-                  billing.acknowledgePurchase(purchase.purchase_token)
-  ```
-- Subscribe to a plan:
-  ```gdscript
-  billing.subscribe(["remove_ads_sub_01"], ["remove-ads-on-year"], false)
-  billing.purchase_updated.connect(_on_subscription_updated)
-  func _on_subscription_updated(response):
-      for purchase in response.purchases_list:
-          if purchase.purchase_state == 1:  # PURCHASED
-              billing.acknowledgePurchase(purchase.purchase_token)
-  ```
+```gdscript
+const ITEM_CONSUMABLE: Array = ["additional_life_v1"]
+const ITEM_NON_CONSUMABLE: Array = ["red_skin_v1", "blue_skin_v1"]
+const SUBSCRIPTIONS: Array = ["remove_ads_sub_01"]
 
-### 4. Confirming and Consuming Purchases
-- Consume a purchase:
-  ```gdscript
-  billing.consumePurchase(purchase.purchases_list[0].purchase_token)
-  billing.purchase_consumed.connect(_on_purchase_consumed)
-  func _on_purchase_consumed(response):
-      print("Consumed: ", response.purchase_token)
-  ```
-- Acknowledge a purchase:
-  ```gdscript
-  billing.acknowledgePurchase(purchase.purchases_list[0].purchase_token)
-  billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
-  func _on_purchase_acknowledged(response):
-      print("Acknowledged: ", response.purchase_token)
-  ```
+func _on_connected() -> void:
+    print("%s: Billing successfully connected" % PLUGIN_NAME)
+    # Query for different types of products
+    billing.queryProductDetails(ITEM_CONSUMABLE, "inapp")
+    billing.queryProductDetails(ITEM_NON_CONSUMABLE, "inapp")
+    billing.queryProductDetails(SUBSCRIPTIONS, "subs")
 
-### 5. Handling Errors and Purchase States
-- Handle errors:
-  ```gdscript
-  billing.purchase_error.connect(_on_purchase_error)
-  func _on_purchase_error(error):
-      print("Purchase error: ", error.debug_message, ", Product: ", error.product_id)
-  billing.query_product_details_error.connect(_on_query_product_details_error)
-  func _on_query_product_details_error(error):
-      print("Product details error: ", error.debug_message)
-  ```
-- Check purchase state (from `iap.txt`):
-  ```gdscript
-  enum purchaseState { UNSPECIFIED_STATE = 0, PURCHASED = 1, PENDING = 2 }
-  func process_purchase(purchase):
-      if purchase.purchase_state == purchaseState.PURCHASED:
-          print("Processing purchase: ", purchase.products)
-      else:
-          print("Purchase pending: ", purchase.products)
-  ```
+func _on_query_product_details(response: Dictionary) -> void:
+    for product in response["product_details_list"]:
+        # Store product details to display in your shop UI
+        G.product_showcase.append(product)
+    product_showcase_updated.emit()
+```
+
+### 2. Initiating a Purchase
+To start a purchase, call the `purchase` or `subscribe` function with the appropriate product and base plan IDs.
+
+```gdscript
+# For a one-time product (consumable or non-consumable)
+func do_purchase(product_id: String):
+    billing.purchase([product_id], false)
+
+# For a subscription
+func do_subscription(subscription_id: String, base_plan_id: String):
+    billing.subscribe([subscription_id], [base_plan_id], false)
+```
+
+### 3. Processing Purchases
+The `purchase_updated` signal is the central place to handle all new purchases. You need to determine whether to acknowledge or consume the item.
+
+```gdscript
+func _on_purchase_updated(response: Dictionary) -> void:
+    for purchase in response["purchases_list"]:
+        process_purchase(purchase)
+
+func process_purchase(purchase: Dictionary) -> void:
+    for product_id in purchase["products"]:
+        if purchase["purchase_state"] != 1: # Not PURCHASED
+            print("Purchase is pending for: %s" % product_id)
+            return
+
+        if product_id in ITEM_NON_CONSUMABLE or product_id in SUBSCRIPTIONS:
+            # Acknowledge non-consumables and subscriptions
+            if not purchase["is_acknowledged"]:
+                billing.acknowledgePurchase(purchase["purchase_token"])
+            else:
+                # Grant entitlement
+                print("Purchase already acknowledged: %s" % product_id)
+
+        elif product_id in ITEM_CONSUMABLE:
+            # Consume consumables
+            billing.consumePurchase(purchase["purchase_token"])
+```
+
+### 4. Handling Consumed and Acknowledged Purchases
+Listen to the corresponding signals to confirm the transaction is complete and update the user's entitlements.
+
+```gdscript
+func _on_purchase_consumed(response: Dictionary) -> void:
+    print("Purchase consumed: %s" % response["purchase_token"])
+    # Grant consumable item to the user (e.g., add a life)
+    G.increase_lives()
+
+func _on_purchase_acknowledged(response: Dictionary) -> void:
+    print("Purchase acknowledged: %s" % response["purchase_token"])
+    # Unlock feature or content
+    G.unlock_skin()
+```
+
+### 5. Restoring Purchases
+To restore purchases (e.g., when a user reinstalls the app), query for their active purchases.
+
+```gdscript
+func _on_connected() -> void:
+    # ... query for product details ...
+
+    # Query for existing purchases
+    billing.queryPurchases("inapp")
+    billing.queryPurchases("subs")
+
+func _on_query_purchases(response: Dictionary) -> void:
+    for purchase in response["purchases_list"]:
+        process_purchase(purchase) # Use the same processing logic
+```
 
 ## Common Errors
 
