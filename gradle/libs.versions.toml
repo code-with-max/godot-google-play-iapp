@@ -8,8 +8,8 @@ espressoCore = "3.6.1"
 appcompat = "1.7.1"
 material = "1.13.0"
 godot = "4.5.0.stable"
-billingKtx = "7.1.1"
-billing = "7.1.1"
+billingKtx = "8.0.0"
+billing = "8.0.0"
 godotVersion = "4.5.0.stable"
 
 [libraries]

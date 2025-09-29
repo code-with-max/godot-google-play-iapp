@@ -20,6 +20,7 @@ import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryProductDetailsResult
 import com.android.billingclient.api.QueryPurchasesParams
 import org.godotengine.godot.Godot
 import org.godotengine.godot.Dictionary
@@ -213,6 +214,7 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
                 .setListener(this)
                 .enablePendingPurchases(
                     PendingPurchasesParams.newBuilder()
+                        .enablePrepaidPlans() // Explicitly enable support for prepaid plans.
                         .enableOneTimeProducts() // Explicitly enable support for pending one-time purchases.
                         .build()
                 )
@@ -322,15 +324,17 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             .setProductList(products)
             .build()
 
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, productDetailsList ->
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryResult ->
             val returnDict = Dictionary()
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            val productDetailsList = (queryResult as? QueryProductDetailsResult)?.productDetailsList ?: emptyList()
+
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
                 Log.i(pluginName, "Product details found")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
-                Log.i(pluginName, "No product details found or an error occurred.")
+                Log.e(pluginName, "No product details found or an error occurred: ${billingResult.debugMessage}")
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
@@ -413,8 +417,10 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             )
             .build()
 
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { queryDetailsResult, productDetailsList ->
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { queryDetailsResult, queryResult ->
             val returnDict = Dictionary()
+            val productDetailsList = (queryResult as? QueryProductDetailsResult)?.productDetailsList
+
             if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK || productDetailsList.isNullOrEmpty()) {
                 Log.e(pluginName, "Error getting product details for $productID")
                 returnDict["response_code"] = queryDetailsResult.responseCode
