@@ -324,17 +324,19 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             .setProductList(products)
             .build()
 
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryResult ->
-            val returnDict = Dictionary()
-            val productDetailsList = (queryResult as? QueryProductDetailsResult)?.productDetailsList ?: emptyList()
-
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Product details found")
+                val returnDict =
+                    IAPP_utils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
                 returnDict["response_code"] = billingResult.responseCode
-                returnDict["product_details_list"] = IAPP_utils.convertProductDetailsListToArray(productDetailsList)
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
-                Log.e(pluginName, "No product details found or an error occurred: ${billingResult.debugMessage}")
+                Log.e(
+                    pluginName,
+                    "No product details found or an error occurred: ${billingResult.debugMessage}"
+                )
+                val returnDict = Dictionary()
                 returnDict["response_code"] = billingResult.responseCode
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
@@ -417,14 +419,14 @@ class AndroidIAPP(godot: Godot?): GodotPlugin(godot),
             )
             .build()
 
-        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { queryDetailsResult, queryResult ->
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
             val returnDict = Dictionary()
-            val productDetailsList = (queryResult as? QueryProductDetailsResult)?.productDetailsList
+            val productDetailsList = queryProductDetailsResult.productDetailsList
 
-            if (queryDetailsResult.responseCode != BillingClient.BillingResponseCode.OK || productDetailsList.isNullOrEmpty()) {
+            if (billingResult.responseCode != BillingClient.BillingResponseCode.OK || productDetailsList.isNullOrEmpty()) {
                 Log.e(pluginName, "Error getting product details for $productID")
-                returnDict["response_code"] = queryDetailsResult.responseCode
-                returnDict["debug_message"] = queryDetailsResult.debugMessage
+                returnDict["response_code"] = billingResult.responseCode
+                returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
                 return@queryProductDetailsAsync
             }

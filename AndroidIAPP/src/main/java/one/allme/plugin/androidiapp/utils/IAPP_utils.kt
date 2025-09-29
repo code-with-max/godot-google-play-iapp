@@ -3,6 +3,7 @@ package one.allme.plugin.androidiapp.utils
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.QueryProductDetailsResult
 import org.godotengine.godot.Dictionary
 
 /**
@@ -46,12 +47,31 @@ object IAPP_utils {
     }
 
     /**
+     * Converts a [QueryProductDetailsResult] object to a Godot Dictionary.
+     * @param queryProductDetailsResult The query product details result to convert.
+     * @return A Dictionary representing the query product details result.
+     */
+    fun convertQueryProductDetailsResultToDictionary(queryProductDetailsResult: QueryProductDetailsResult): Dictionary {
+        return Dictionary().apply {
+            put(
+                "product_details_list",
+                convertProductDetailsListToArray(queryProductDetailsResult.productDetailsList)
+            )
+            put(
+                "unfetched_product_list",
+                convertUnfetchedProductListToArray(queryProductDetailsResult.unfetchedProductList)
+            )
+        }
+    }
+
+    /**
      * Converts a list of [ProductDetails] objects to a Godot Array of Dictionaries.
      * @param productDetailsList The list of product details to convert.
      * @return An Array of Dictionaries, where each Dictionary represents a product's details.
      */
-    fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>): Array<Any> {
-        return productDetailsList.map { convertProductDetailsToDictionary(it) }.toTypedArray()
+    private fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>?): Array<Any> {
+        return productDetailsList?.map { convertProductDetailsToDictionary(it) }?.toTypedArray()
+            ?: emptyArray()
     }
 
     /**
@@ -152,6 +172,28 @@ object IAPP_utils {
                 put("installment_plan_commitment_payments_count", it.installmentPlanCommitmentPaymentsCount)
                 put("subsequent_installment_plan_commitment_payments_count", it.subsequentInstallmentPlanCommitmentPaymentsCount)
             }
+        }
+    }
+
+    /**
+     * Converts a list of [QueryProductDetailsResult.UnfetchedProduct] objects to a Godot Array of Dictionaries.
+     * @param unfetchedProductList The list of unfetched products to convert.
+     * @return An Array of Dictionaries, where each Dictionary represents an unfetched product.
+     */
+    private fun convertUnfetchedProductListToArray(unfetchedProductList: List<QueryProductDetailsResult.UnfetchedProduct>?): Array<Any> {
+        return unfetchedProductList?.map { convertUnfetchedProductToDictionary(it) }?.toTypedArray()
+            ?: emptyArray()
+    }
+
+    /**
+     * Converts a single [QueryProductDetailsResult.UnfetchedProduct] object to a Godot Dictionary.
+     * @param unfetchedProduct The unfetched product to convert.
+     * @return A Dictionary representing the unfetched product.
+     */
+    private fun convertUnfetchedProductToDictionary(unfetchedProduct: QueryProductDetailsResult.UnfetchedProduct): Dictionary {
+        return Dictionary().apply {
+            put("product_id", unfetchedProduct.productId)
+            put("reason", unfetchedProduct.reason)
         }
     }
 }
