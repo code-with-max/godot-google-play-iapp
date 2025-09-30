@@ -2,6 +2,7 @@ package one.allme.plugin.androidiapp.utils
 
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.UnfetchedProduct
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsResult
 import org.godotengine.godot.Dictionary
