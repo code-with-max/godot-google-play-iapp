@@ -43,7 +43,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.billing.ktx)
     implementation(libs.godotengine.godot)
-    implementation(libs.billing)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -2,7 +2,6 @@ package one.allme.plugin.androidiapp.utils
 
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
-import com.android.billingclient.api.UnfetchedProduct
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsResult
 import org.godotengine.godot.Dictionary
@@ -12,20 +11,10 @@ import org.godotengine.godot.Dictionary
  */
 object IAPP_utils {
 
-    /**
-     * Converts a list of [Purchase] objects to a Godot Array of Dictionaries.
-     * @param purchasesList The list of purchases to convert.
-     * @return An Array of Dictionaries, where each Dictionary represents a purchase.
-     */
     fun convertPurchasesListToArray(purchasesList: List<Purchase>): Array<Any> {
         return purchasesList.map { convertPurchaseToDictionary(it) }.toTypedArray()
     }
 
-    /**
-     * Converts a single [Purchase] object to a Godot Dictionary.
-     * @param purchase The purchase object to convert.
-     * @return A Dictionary representing the purchase.
-     */
     private fun convertPurchaseToDictionary(purchase: Purchase): Dictionary {
         return Dictionary().apply {
             put("account_identifiers", purchase.accountIdentifiers)
@@ -47,11 +36,6 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a [QueryProductDetailsResult] object to a Godot Dictionary.
-     * @param queryProductDetailsResult The query product details result to convert.
-     * @return A Dictionary representing the query product details result.
-     */
     fun convertQueryProductDetailsResultToDictionary(queryProductDetailsResult: QueryProductDetailsResult): Dictionary {
         return Dictionary().apply {
             put(
@@ -65,21 +49,11 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a list of [ProductDetails] objects to a Godot Array of Dictionaries.
-     * @param productDetailsList The list of product details to convert.
-     * @return An Array of Dictionaries, where each Dictionary represents a product's details.
-     */
     private fun convertProductDetailsListToArray(productDetailsList: List<ProductDetails>?): Array<Any> {
         return productDetailsList?.map { convertProductDetailsToDictionary(it) }?.toTypedArray()
             ?: emptyArray()
     }
 
-    /**
-     * Converts a single [ProductDetails] object to a Godot Dictionary.
-     * @param productsDetails The product details object to convert.
-     * @return A Dictionary representing the product's details.
-     */
     private fun convertProductDetailsToDictionary(productsDetails: ProductDetails): Dictionary {
         return Dictionary().apply {
             put("description", productsDetails.description)
@@ -97,11 +71,6 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a [ProductDetails.OneTimePurchaseOfferDetails] object to a Godot Dictionary.
-     * @param offerDetails The one-time purchase offer details to convert.
-     * @return A Dictionary representing the one-time purchase offer details.
-     */
     private fun convertPurchaseOfferToDict(offerDetails: ProductDetails.OneTimePurchaseOfferDetails?): Dictionary {
         return Dictionary().apply {
             offerDetails?.let {
@@ -112,20 +81,10 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a list of [ProductDetails.SubscriptionOfferDetails] objects to a Godot Array of Dictionaries.
-     * @param subscriptionsOffersList The list of subscription offer details to convert.
-     * @return An Array of Dictionaries, where each Dictionary represents a subscription offer's details.
-     */
     private fun convertSubscriptionsDetailsListToArray(subscriptionsOffersList: List<ProductDetails.SubscriptionOfferDetails>?): Array<Any>? {
         return subscriptionsOffersList?.map { convertSubscriptionDetailsToDictionary(it) }?.toTypedArray()
     }
 
-    /**
-     * Converts a single [ProductDetails.SubscriptionOfferDetails] object to a Godot Dictionary.
-     * @param offerDetails The subscription offer details to convert.
-     * @return A Dictionary representing the subscription offer's details.
-     */
     private fun convertSubscriptionDetailsToDictionary(offerDetails: ProductDetails.SubscriptionOfferDetails): Dictionary {
         return Dictionary().apply {
             put("base_plan_id", offerDetails.basePlanId)
@@ -137,20 +96,10 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a list of [ProductDetails.PricingPhase] objects to a Godot Array of Dictionaries.
-     * @param phasesList The list of pricing phases to convert.
-     * @return An Array of Dictionaries, where each Dictionary represents a pricing phase.
-     */
     private fun convertPricingPhasesListToArray(phasesList: List<ProductDetails.PricingPhase>?): Array<Any>? {
         return phasesList?.map { convertPricingPhaseToDictionary(it) }?.toTypedArray()
     }
 
-    /**
-     * Converts a single [ProductDetails.PricingPhase] object to a Godot Dictionary.
-     * @param phase The pricing phase to convert.
-     * @return A Dictionary representing the pricing phase.
-     */
     private fun convertPricingPhaseToDictionary(phase: ProductDetails.PricingPhase): Dictionary {
         return Dictionary().apply {
             put("billing_cycle_count", phase.billingCycleCount)
@@ -162,11 +111,6 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a [ProductDetails.InstallmentPlanDetails] object to a Godot Dictionary.
-     * @param planDetails The installment plan details to convert.
-     * @return A Dictionary representing the installment plan details.
-     */
     private fun convertInstallmentPlanDetailsToDictionary(planDetails: ProductDetails.InstallmentPlanDetails?): Dictionary {
         return Dictionary().apply {
             planDetails?.let {
@@ -176,21 +120,11 @@ object IAPP_utils {
         }
     }
 
-    /**
-     * Converts a list of [QueryProductDetailsResult.UnfetchedProduct] objects to a Godot Array of Dictionaries.
-     * @param unfetchedProductList The list of unfetched products to convert.
-     * @return An Array of Dictionaries, where each Dictionary represents an unfetched product.
-     */
     private fun convertUnfetchedProductListToArray(unfetchedProductList: List<QueryProductDetailsResult.UnfetchedProduct>?): Array<Any> {
         return unfetchedProductList?.map { convertUnfetchedProductToDictionary(it) }?.toTypedArray()
             ?: emptyArray()
     }
 
-    /**
-     * Converts a single [QueryProductDetailsResult.UnfetchedProduct] object to a Godot Dictionary.
-     * @param unfetchedProduct The unfetched product to convert.
-     * @return A Dictionary representing the unfetched product.
-     */
     private fun convertUnfetchedProductToDictionary(unfetchedProduct: QueryProductDetailsResult.UnfetchedProduct): Dictionary {
         return Dictionary().apply {
             put("product_id", unfetchedProduct.productId)
