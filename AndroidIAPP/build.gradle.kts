@@ -42,7 +42,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.billing.ktx)
-    implementation(libs.godotengine.godot)
+    implementation(libs.godot)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
