@@ -72,6 +72,18 @@ object IAPP_utils {
         }
     }
 
+    private fun convertUnfetchedProductListToArray(unfetchedProductList: List<UnfetchedProduct>?): Array<Any> {
+        return unfetchedProductList?.map { convertUnfetchedProductToDictionary(it) }?.toTypedArray()
+            ?: emptyArray()
+    }
+
+    private fun convertUnfetchedProductToDictionary(unfetchedProduct: UnfetchedProduct): Dictionary {
+        return Dictionary().apply {
+            put("product_id", unfetchedProduct.productId)
+            put("reason", unfetchedProduct.reason)
+        }
+    }
+
     private fun convertPurchaseOfferToDict(offerDetails: ProductDetails.OneTimePurchaseOfferDetails?): Dictionary {
         return Dictionary().apply {
             offerDetails?.let {
@@ -118,18 +130,6 @@ object IAPP_utils {
                 put("installment_plan_commitment_payments_count", it.installmentPlanCommitmentPaymentsCount)
                 put("subsequent_installment_plan_commitment_payments_count", it.subsequentInstallmentPlanCommitmentPaymentsCount)
             }
-        }
-    }
-
-    private fun convertUnfetchedProductListToArray(unfetchedProductList: List<UnfetchedProduct>?): Array<Any> {
-        return unfetchedProductList?.map { convertUnfetchedProductToDictionary(it) }?.toTypedArray()
-            ?: emptyArray()
-    }
-
-    private fun convertUnfetchedProductToDictionary(unfetchedProduct: UnfetchedProduct): Dictionary {
-        return Dictionary().apply {
-            put("product_id", unfetchedProduct.productId)
-            put("reason", unfetchedProduct.reason)
         }
     }
 }
