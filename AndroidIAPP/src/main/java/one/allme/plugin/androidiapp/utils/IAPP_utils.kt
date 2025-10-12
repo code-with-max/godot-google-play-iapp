@@ -4,6 +4,7 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsResult
+import com.android.billingclient.api.UnfetchedProduct
 import org.godotengine.godot.Dictionary
 
 /**
@@ -120,12 +121,12 @@ object IAPP_utils {
         }
     }
 
-    private fun convertUnfetchedProductListToArray(unfetchedProductList: List<QueryProductDetailsResult.UnfetchedProduct>?): Array<Any> {
+    private fun convertUnfetchedProductListToArray(unfetchedProductList: List<UnfetchedProduct>?): Array<Any> {
         return unfetchedProductList?.map { convertUnfetchedProductToDictionary(it) }?.toTypedArray()
             ?: emptyArray()
     }
 
-    private fun convertUnfetchedProductToDictionary(unfetchedProduct: QueryProductDetailsResult.UnfetchedProduct): Dictionary {
+    private fun convertUnfetchedProductToDictionary(unfetchedProduct: UnfetchedProduct): Dictionary {
         return Dictionary().apply {
             put("product_id", unfetchedProduct.productId)
             put("reason", unfetchedProduct.reason)
