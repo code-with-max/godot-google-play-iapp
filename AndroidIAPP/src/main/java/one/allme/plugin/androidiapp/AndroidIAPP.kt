@@ -298,16 +298,23 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             return
         }
         Log.i(pluginName, "Starting purchase flow for $productID product")
-        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, isOfferPersonalized)
+        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized)
     }
 
     @UsedByGodot
-    fun subscribe(listOfProductsIDs: Array<String>, basePlanIDs: Array<String>, isOfferPersonalized: Boolean) {
+    fun subscribe(
+        listOfProductsIDs: Array<String>,
+        basePlanIDs: Array<String>,
+        offerIDs: Array<String>,
+        isOfferPersonalized: Boolean
+    ) {
         val returnDict = Dictionary()
         val activity = requireActivityForPurchase(returnDict) ?: return
 
         val productID = listOfProductsIDs.firstOrNull()
         val basePlanID = basePlanIDs.firstOrNull()
+        val offerID = offerIDs.firstOrNull()
+
 
         if (productID.isNullOrBlank() || basePlanID.isNullOrBlank()) {
             Log.e(pluginName, "Product ID or Base Plan ID is missing.")
@@ -317,7 +324,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         }
 
         Log.i(pluginName, "Starting purchase flow for $productID subscription with base plan $basePlanID")
-        launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, isOfferPersonalized)
+        launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, offerID, isOfferPersonalized)
     }
 
     private fun launchPurchaseFlow(
@@ -325,6 +332,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         productID: String,
         productType: String,
         basePlanID: String? = null,
+        offerID: String? = null,
         isOfferPersonalized: Boolean = false,
         oldPurchaseToken: String? = null,
         replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE
@@ -359,13 +367,23 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         val builder = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails)
 
         if (productType == BillingClient.ProductType.SUBS) {
-            val offerDetails = productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
+            val offerDetails = if (offerID == null) {
+                productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
+            } else {
+                productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID && it.offerId == offerID }
+            }
+
             if (offerDetails != null) {
                 builder.setOfferToken(offerDetails.offerToken)
             } else {
-                Log.e(pluginName, "Base Plan ID $basePlanID not found in $productID subscription")
+                val errorMessage = if (offerID == null) {
+                    "Base Plan ID $basePlanID not found in $productID subscription"
+                } else {
+                    "Offer ID $offerID with Base Plan ID $basePlanID not found in $productID subscription"
+                }
+                Log.e(pluginName, errorMessage)
                 returnDict["response_code"] = BillingClient.BillingResponseCode.DEVELOPER_ERROR
-                returnDict["debug_message"] = "Base Plan ID $basePlanID not found in $productID subscription"
+                returnDict["debug_message"] = errorMessage
                 emitSignal(purchaseErrorSignal.name, returnDict)
                 return
             }
