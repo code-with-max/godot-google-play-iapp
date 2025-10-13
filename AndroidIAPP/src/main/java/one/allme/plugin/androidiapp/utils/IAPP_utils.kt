@@ -18,22 +18,25 @@ object IAPP_utils {
 
     private fun convertPurchaseToDictionary(purchase: Purchase): Dictionary {
         return Dictionary().apply {
-            put("account_identifiers", purchase.accountIdentifiers)
+            val accountIdentifiers = Dictionary()
+            purchase.accountIdentifiers?.let {
+                accountIdentifiers["obfuscated_account_id"] = it.obfuscatedAccountId
+                accountIdentifiers["obfuscated_profile_id"] = it.obfuscatedProfileId
+            }
+            put("account_identifiers", accountIdentifiers)
+
             put("developer_payload", purchase.developerPayload)
             put("order_id", purchase.orderId)
             put("original_json", purchase.originalJson)
             put("package_name", purchase.packageName)
-            put("pending_purchase_update", purchase.pendingPurchaseUpdate)
             put("products", purchase.products.toTypedArray())
             put("purchase_state", purchase.purchaseState)
             put("purchase_time", purchase.purchaseTime)
             put("purchase_token", purchase.purchaseToken)
             put("quantity", purchase.quantity)
             put("signature", purchase.signature)
-            put("hash_code", purchase.hashCode())
             put("is_acknowledged", purchase.isAcknowledged)
             put("is_auto_renewing", purchase.isAutoRenewing)
-            put("to_string", purchase.toString())
         }
     }
 
@@ -80,7 +83,7 @@ object IAPP_utils {
     private fun convertUnfetchedProductToDictionary(unfetchedProduct: UnfetchedProduct): Dictionary {
         return Dictionary().apply {
             put("product_id", unfetchedProduct.productId)
-            put("reason", unfetchedProduct.reason)
+            put("status_code", unfetchedProduct.statusCode)
         }
     }
 
@@ -94,8 +97,9 @@ object IAPP_utils {
         }
     }
 
-    private fun convertSubscriptionsDetailsListToArray(subscriptionsOffersList: List<ProductDetails.SubscriptionOfferDetails>?): Array<Any>? {
-        return subscriptionsOffersList?.map { convertSubscriptionDetailsToDictionary(it) }?.toTypedArray()
+    private fun convertSubscriptionsDetailsListToArray(subscriptionsOffersList: List<ProductDetails.SubscriptionOfferDetails>?): Array<Any> {
+        return subscriptionsOffersList?.map { convertSubscriptionDetailsToDictionary(it) }
+            ?.toTypedArray() ?: emptyArray()
     }
 
     private fun convertSubscriptionDetailsToDictionary(offerDetails: ProductDetails.SubscriptionOfferDetails): Dictionary {
@@ -109,8 +113,9 @@ object IAPP_utils {
         }
     }
 
-    private fun convertPricingPhasesListToArray(phasesList: List<ProductDetails.PricingPhase>?): Array<Any>? {
+    private fun convertPricingPhasesListToArray(phasesList: List<ProductDetails.PricingPhase>?): Array<Any> {
         return phasesList?.map { convertPricingPhaseToDictionary(it) }?.toTypedArray()
+            ?: emptyArray()
     }
 
     private fun convertPricingPhaseToDictionary(phase: ProductDetails.PricingPhase): Dictionary {
