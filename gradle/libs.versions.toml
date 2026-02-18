@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.0"
+agp = "9.0.1"
 kotlin = "2.2.20"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -8,7 +8,7 @@ espressoCore = "3.7.0"
 appcompat = "1.7.1"
 material = "1.13.0"
 billingKtx = "8.3.0"
-godot = "4.5.0.stable"
+godot = "4.6.1.stable"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
