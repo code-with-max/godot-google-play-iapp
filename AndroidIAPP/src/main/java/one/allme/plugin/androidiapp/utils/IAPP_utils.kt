@@ -37,6 +37,7 @@ object IAPP_utils {
             put("signature", purchase.signature)
             put("is_acknowledged", purchase.isAcknowledged)
             put("is_auto_renewing", purchase.isAutoRenewing)
+            put("is_suspended", purchase.isSuspended)
         }
     }
 
@@ -69,6 +70,7 @@ object IAPP_utils {
             put("to_string", productsDetails.toString())
             if (productsDetails.productType == BillingClient.ProductType.INAPP) {
                 put("one_time_purchase_offer_details", convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails))
+                put("one_time_purchase_offer_details_list", convertOneTimePurchaseOfferListToArray(productsDetails.oneTimePurchaseOfferDetailsList))
             } else if (productsDetails.productType == BillingClient.ProductType.SUBS) {
                 put("subscription_offer_details", convertSubscriptionsDetailsListToArray(productsDetails.subscriptionOfferDetails))
             }
@@ -85,6 +87,10 @@ object IAPP_utils {
             put("product_id", unfetchedProduct.productId)
             put("status_code", unfetchedProduct.statusCode)
         }
+    }
+
+    private fun convertOneTimePurchaseOfferListToArray(offerDetailsList: List<ProductDetails.OneTimePurchaseOfferDetails>?): Array<Any> {
+        return offerDetailsList?.map { convertPurchaseOfferToDict(it) }?.toTypedArray() ?: emptyArray()
     }
 
     private fun convertPurchaseOfferToDict(offerDetails: ProductDetails.OneTimePurchaseOfferDetails?): Dictionary {

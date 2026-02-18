@@ -83,6 +83,14 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         emitSignal(billingInfoSignal.name, returnDict)
     }
 
+    private fun BillingResult.toDictionary(): Dictionary {
+        val dict = Dictionary()
+        dict["response_code"] = responseCode
+        dict["debug_message"] = debugMessage
+        dict["sub_response_code"] = onPurchasesUpdatedSubResponseCode
+        return dict
+    }
+
     private fun requireActivityForPurchase(returnDict: Dictionary): Activity? {
         return activity?.also {
             Log.i(pluginName, "Activity available for purchase (fun requireActivityForPurchase)")
@@ -209,23 +217,23 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     }
 
     @UsedByGodot
-    fun queryPurchases(productType: String = ProductType.INAPP) {
+    fun queryPurchases(productType: String = ProductType.INAPP, includeSuspended: Boolean = false) {
         if (!isReady) {
             Log.e(pluginName, "Billing client is not ready. Cannot query purchases.")
             return
         }
-        val params = QueryPurchasesParams.newBuilder().setProductType(productType).build()
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(productType)
+            .includeSuspendedSubscriptions(includeSuspended)
+            .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
-            val returnDict = Dictionary()
+            val returnDict = billingResult.toDictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchases found")
-                returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
                 Log.i(pluginName, "No purchase found or an error occurred.")
-                returnDict["response_code"] = billingResult.responseCode
-                returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchases_list"] = null
                 emitSignal(queryPurchasesErrorSignal.name, returnDict)
             }
@@ -257,7 +265,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
         billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
             val returnDict = IAPP_utils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
-            returnDict["response_code"] = billingResult.responseCode
+            returnDict.putAll(billingResult.toDictionary())
 
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Product details found")
@@ -327,6 +335,34 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, offerID, isOfferPersonalized)
     }
 
+    @UsedByGodot
+    fun updateSubscription(
+        listOfProductsIDs: Array<String>,
+        basePlanIDs: Array<String>,
+        offerIDs: Array<String>,
+        isOfferPersonalized: Boolean,
+        oldPurchaseToken: String,
+        oldProductID: String,
+        replacementMode: Int
+    ) {
+        val returnDict = Dictionary()
+        val activity = requireActivityForPurchase(returnDict) ?: return
+
+        val productID = listOfProductsIDs.firstOrNull()
+        val basePlanID = basePlanIDs.firstOrNull()
+        val offerID = offerIDs.firstOrNull()
+
+        if (productID.isNullOrBlank() || basePlanID.isNullOrBlank() || oldPurchaseToken.isBlank() || oldProductID.isBlank()) {
+            Log.e(pluginName, "Product ID, Base Plan ID, Old Purchase Token, or Old Product ID is missing.")
+            returnDict["debug_message"] = "Product ID, Base Plan ID, Old Purchase Token, or Old Product ID is missing."
+            emitSignal(purchaseErrorSignal.name, returnDict)
+            return
+        }
+
+        Log.i(pluginName, "Starting subscription update flow for $productID with base plan $basePlanID")
+        launchPurchaseFlow(activity, productID, ProductType.SUBS, basePlanID, offerID, isOfferPersonalized, oldPurchaseToken, oldProductID, replacementMode)
+    }
+
     private fun launchPurchaseFlow(
         activity: Activity,
         productID: String,
@@ -335,6 +371,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         offerID: String? = null,
         isOfferPersonalized: Boolean = false,
         oldPurchaseToken: String? = null,
+        oldProductID: String? = null,
         replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE
     ) {
         val returnDict = Dictionary().apply {
@@ -402,20 +439,29 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             flowParamsBuilder.setObfuscatedProfileId(obfuscatedProfileId)
         }
 
-        if (oldPurchaseToken != null && replacementMode != BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE) {
-            val updateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
+        if (oldPurchaseToken != null) {
+            val updateParamsBuilder = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldPurchaseToken)
-                .setSubscriptionReplacementMode(replacementMode)
-                .build()
-            flowParamsBuilder.setSubscriptionUpdateParams(updateParams)
+
+            if (oldProductID != null && replacementMode != BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE) {
+                val replacementParams = BillingFlowParams.ProductDetailsParams.SubscriptionProductReplacementParams.newBuilder()
+                    .setOldProductId(oldProductID)
+                    .setReplacementMode(replacementMode)
+                    .build()
+                builder.setSubscriptionProductReplacementParams(replacementParams)
+            } else if (replacementMode != BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE) {
+                // Fallback for older logic if oldProductID is not provided
+                @Suppress("DEPRECATION")
+                updateParamsBuilder.setSubscriptionReplacementMode(replacementMode)
+            }
+            flowParamsBuilder.setSubscriptionUpdateParams(updateParamsBuilder.build())
         }
 
         val purchasingResult = billingClient.launchBillingFlow(activity, flowParamsBuilder.build())
-        returnDict["response_code"] = purchasingResult.responseCode
+        returnDict.putAll(purchasingResult.toDictionary())
 
         if (purchasingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.e(pluginName, "$productID purchasing failed: ${purchasingResult.debugMessage}")
-            returnDict["debug_message"] = purchasingResult.debugMessage
             emitSignal(purchaseErrorSignal.name, returnDict)
         } else {
             Log.i(pluginName, "Product $productID purchasing launched successfully")
@@ -423,26 +469,21 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        val returnDict = Dictionary()
+        val returnDict = billingResult.toDictionary()
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
                     Log.i(pluginName, "Purchases updated successfully")
-                    returnDict["response_code"] = billingResult.responseCode
                     returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
                     emitSignal(purchaseUpdatedSignal.name, returnDict)
                 }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.i(pluginName, "User canceled purchase updating")
-                returnDict["response_code"] = billingResult.responseCode
-                returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(purchaseCancelledSignal.name, returnDict)
             }
             else -> {
                 Log.i(pluginName, "Error purchase updating, response code: ${billingResult.responseCode}")
-                returnDict["response_code"] = billingResult.responseCode
-                returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(purchaseUpdatedErrorSignal.name, returnDict)
             }
         }
@@ -456,16 +497,13 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         }
         val consumeParams = ConsumeParams.newBuilder().setPurchaseToken(purchaseToken).build()
         billingClient.consumeAsync(consumeParams) { billingResult, outToken ->
-            val returnDict = Dictionary()
+            val returnDict = billingResult.toDictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchase consumed successfully: $outToken")
-                returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = outToken
                 emitSignal(purchaseConsumedSignal.name, returnDict)
             } else {
                 Log.e(pluginName, "Error purchase consuming, response code: ${billingResult.responseCode}")
-                returnDict["response_code"] = billingResult.responseCode
-                returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchase_token"] = outToken
                 emitSignal(purchaseConsumedErrorSignal.name, returnDict)
             }
@@ -480,16 +518,13 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         }
         val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchaseToken).build()
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            val returnDict = Dictionary()
+            val returnDict = billingResult.toDictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchase acknowledged successfully: $purchaseToken")
-                returnDict["response_code"] = billingResult.responseCode
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseAcknowledgedSignal.name, returnDict)
             } else {
                 Log.e(pluginName, "Error purchase acknowledging, response code: ${billingResult.responseCode}")
-                returnDict["response_code"] = billingResult.responseCode
-                returnDict["debug_message"] = billingResult.debugMessage
                 returnDict["purchase_token"] = purchaseToken
                 emitSignal(purchaseAcknowledgedErrorSignal.name, returnDict)
             }
