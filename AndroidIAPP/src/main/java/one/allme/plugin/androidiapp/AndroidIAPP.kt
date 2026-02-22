@@ -104,16 +104,22 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         }
     }
 
-    @get:UsedByGodot
-    val isReady: Boolean
-        get() {
-            if (!::billingClient.isInitialized) {
-                Log.e(pluginName, "BillingClient is not initialized.")
-                return false
-            }
-            Log.i(pluginName, "Is ready: ${billingClient.isReady}")
-            return billingClient.isReady
+    /**
+     * Проверка готовности BillingClient.
+     * Используется в Godot: if billing.isReady(): ...
+     */
+    @UsedByGodot
+    fun isReady(): Boolean {
+        return if (::billingClient.isInitialized) {
+            val readyState = billingClient.isReady
+            // Оставляем лог для дебага в logcat
+            Log.d(pluginName, "BILLING: isReady check: $readyState")
+            readyState
+        } else {
+            Log.w(pluginName, "BILLING: isReady called but billingClient not initialized")
+            false
         }
+    }
 
     @UsedByGodot
     fun sayHello(says: String = "Hello from AndroidIAPP plugin") {
@@ -218,7 +224,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     @UsedByGodot
     fun queryPurchases(productType: String = ProductType.INAPP, includeSuspended: Boolean = false) {
-        if (!isReady) {
+        if (!isReady()) {
             Log.e(pluginName, "Billing client is not ready. Cannot query purchases.")
             return
         }
@@ -242,7 +248,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     @UsedByGodot
     fun queryProductDetails(listOfProductsIDs: Array<String>, productType: String = ProductType.INAPP) {
-        if (!isReady) {
+        if (!isReady()) {
             Log.e(pluginName, "Billing client is not ready. Cannot query product details.")
             val returnDict = Dictionary().apply {
                 put("response_code", BillingClient.BillingResponseCode.ERROR)
@@ -491,7 +497,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     @UsedByGodot
     fun consumePurchase(purchaseToken: String) {
-        if (!isReady) {
+        if (!isReady()) {
             Log.e(pluginName, "Billing client is not ready. Cannot consume purchase.")
             return
         }
@@ -512,7 +518,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     @UsedByGodot
     fun acknowledgePurchase(purchaseToken: String) {
-        if (!isReady) {
+        if (!isReady()) {
             Log.e(pluginName, "Billing client is not ready. Cannot acknowledge purchase.")
             return
         }
