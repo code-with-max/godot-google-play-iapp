@@ -1,6 +1,6 @@
 # AndroidIAPP Godot Plugin
 
-AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 7.1.1. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
+AndroidIAPP is a [plugin](<https://docs.godotengine.org/en/stable/tutorials/plugins/editor/installing_plugins.html#installing-a-plugin>) for the Godot game engine. It provides an interface to work with Google Play Billing Library version 8. The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
 
 A simple game to demonstrate the work of purchases and subscriptions with different tariff plans: [Circle Catcher 2](https://play.google.com/store/apps/details?id=org.godotengine.circlecatcher)
 
@@ -42,13 +42,16 @@ A simple game to demonstrate the work of purchases and subscriptions with differ
 
 - Ensure the plugin is activated in `Project > Project Settings > Plugins`.
 - Check `AndroidIAPP.gd` to confirm the correct path to the AAR file:
+
   ```gdscript
   if debug:
       return PackedStringArray(["AndroidIAPP-debug.aar"])
   else:
       return PackedStringArray(["AndroidIAPP-release.aar"])
   ```
+
 - Use logcat to check the logs:
+
   ```shell
   ./adb logcat | grep IAPP
   ```
@@ -66,35 +69,35 @@ const PLUGIN_NAME: String = "AndroidIAPP"
 var billing = null
 
 func _ready() -> void:
-	if Engine.has_singleton(PLUGIN_NAME):
-		billing = Engine.get_singleton(PLUGIN_NAME)
+ if Engine.has_singleton(PLUGIN_NAME):
+  billing = Engine.get_singleton(PLUGIN_NAME)
 
-		# Connect to signals
-		billing.connected.connect(_on_connected)
-		billing.disconnected.connect(_on_disconnected)
-		billing.query_purchases.connect(_on_query_purchases)
-		billing.query_purchases_error.connect(_on_query_purchases_error)
-		billing.query_product_details.connect(_on_query_product_details)
-		billing.query_product_details_error.connect(_on_query_product_details_error)
-		billing.purchase_updated.connect(_on_purchase_updated)
-		billing.purchase_cancelled.connect(_on_purchase_cancelled)
-		billing.purchase_update_error.connect(_on_purchase_update_error)
-		billing.purchase_consumed.connect(_on_purchase_consumed)
-		billing.purchase_consumed_error.connect(_on_purchase_consumed_error)
-		billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
-		billing.purchase_acknowledged_error.connect(_on_purchase_acknowledged_error)
+  # Connect to signals
+  billing.connected.connect(_on_connected)
+  billing.disconnected.connect(_on_disconnected)
+  billing.query_purchases.connect(_on_query_purchases)
+  billing.query_purchases_error.connect(_on_query_purchases_error)
+  billing.query_product_details.connect(_on_query_product_details)
+  billing.query_product_details_error.connect(_on_query_product_details_error)
+  billing.purchase_updated.connect(_on_purchase_updated)
+  billing.purchase_cancelled.connect(_on_purchase_cancelled)
+  billing.purchase_update_error.connect(_on_purchase_update_error)
+  billing.purchase_consumed.connect(_on_purchase_consumed)
+  billing.purchase_consumed_error.connect(_on_purchase_consumed_error)
+  billing.purchase_acknowledged.connect(_on_purchase_acknowledged)
+  billing.purchase_acknowledged_error.connect(_on_purchase_acknowledged_error)
 
-		# Start the connection
-		if not billing.isReady:
-			billing.startConnection()
-	else:
-		printerr("%s singleton not found" % PLUGIN_NAME)
+  # Start the connection
+  if not billing.isReady():
+   billing.startConnection()
+ else:
+  printerr("%s singleton not found" % PLUGIN_NAME)
 
 func _on_connected() -> void:
-	print("%s: Billing successfully connected" % PLUGIN_NAME)
-	# Now you can query for products and purchases
-	billing.queryProductDetails(ITEM_ACKNOWLEDGED, "inapp")
-	billing.queryPurchases("inapp")
+ print("%s: Billing successfully connected" % PLUGIN_NAME)
+ # Now you can query for products and purchases
+ billing.queryProductDetails(ITEM_ACKNOWLEDGED, "inapp")
+ billing.queryPurchases("inapp")
 
 # ... other signal handlers
 ```
@@ -102,10 +105,12 @@ func _on_connected() -> void:
 ## Signals
 
 ### Test Signal
+
 - `helloResponse`: Emitted when a response to a hello message is received.
   - **Returns**: `String` (the message passed to `sayHello` or an error like `"Error: Activity is null"`).
 
 ### Information Signals
+
 - `startConnection`: Emitted when the connection to Google Play Billing starts.
   - **Returns**: None.
 - `connected`: Emitted when successfully connected.
@@ -114,6 +119,7 @@ func _on_connected() -> void:
   - **Returns**: `Dictionary` (e.g., `{"debug_message": "Activity is null"}`).
 
 ### Billing Signals
+
 - `query_purchases`: Emitted when a purchase query is successful.
   - **Returns**: `Dictionary`
     - `response_code`: Integer (e.g., `BillingClient.BillingResponseCode.OK`).
@@ -182,50 +188,70 @@ func _on_connected() -> void:
 ## Functions
 
 `startConnection()`: Starts the connection to Google Play Billing.
+
 - Emits: `startConnection`, `connected`, or `disconnected` (if activity is unavailable).
 - **Warning**: Ensure the plugin is initialized after Godot's Android activity is available.
 
 `endConnection()`: Ends the connection to the Google Play Billing service.
 
-`isReady`: Checks if the billing connection is ready.
+`isReady()`: Checks if the billing connection is ready.
+
 - **Returns**: `bool`.
 
 `sayHello(says: String)`: Sends a test message.
+
 - Emits: `helloResponse`.
 - Displays a Toast and logs to the console.
 - **Warning**: May fail with `"Error: Activity is null"` if called too early. Avoid in production.
 
-`queryPurchases(productType: String)`: Queries purchases.
+`queryPurchases(productType: String, includeSuspended: bool)`: Queries purchases.
+
 - `productType`: `"inapp"` or `"subs"`.
+- `includeSuspended`: Whether to include suspended subscriptions.
 - Emits: `query_purchases` or `query_purchases_error`.
 
 `queryProductDetails(listOfProductsIDs: Array<String>, productType: String)`: Queries product or subscription details.
+
 - `listOfProductsIDs`: List of product/subscription IDs (must not be empty).
 - `productType`: `"inapp"` or `"subs"`.
 - Emits: `query_product_details` or `query_product_details_error`.
 
 `purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: bool)`: Initiates a product purchase.
+
 - `listOfProductsIDs`: List of product IDs (must not be empty).
 - `isOfferPersonalized`: Set to `false` unless complying with [EU directive](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02011L0083-20220528) (see [details](https://developer.android.com/google/play/billing/integrate#personalized-price)).
 - Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
 - **Important**: Call `consumePurchase` or `acknowledgePurchase` to complete the transaction.
 
-`subscribe(listOfProductsIDs: Array<String>, basePlanIDs: Array<String>, isOfferPersonalized: bool)`: Initiates a subscription.
+`subscribe(listOfProductsIDs: Array<String>, basePlanIDs: Array<String>, offerIDs: Array<String>, isOfferPersonalized: bool)`: Initiates a subscription.
+
 - `listOfProductsIDs`, `basePlanIDs`: Lists of IDs (must not be empty).
+- `offerIDs`: List with one offer ID (can be an empty array if no offer applies).
 - `isOfferPersonalized`: Set to `false` unless complying with EU directive.
 - Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, `purchase_update_error`, or `query_product_details_error`.
 - **Important**: Call `acknowledgePurchase` to complete the subscription.
 
+`updateSubscription(listOfProductsIDs: Array<String>, basePlanIDs: Array<String>, offerIDs: Array<String>, isOfferPersonalized: bool, oldPurchaseToken: String, oldProductID: String, replacementMode: int)`: Updates an existing subscription (upgrade/downgrade).
+
+- `oldPurchaseToken`: Token of the currently active subscription.
+- `oldProductID`: Product ID of the currently active subscription.
+- `replacementMode`: One of the `ReplacementMode` values (e.g., `CHARGE_FULL_PRICE`, `WITHOUT_PRORATION`).
+- Emits: `purchase_updated`, `purchase_error`, `purchase_cancelled`, or `purchase_update_error`.
+
 `consumePurchase(purchaseToken: String)`: Consumes a purchase.
+
 - `purchaseToken`: Token from `purchase_updated` response.
 - Emits: `purchase_consumed` or `purchase_consumed_error`.
 
 `acknowledgePurchase(purchaseToken: String)`: Acknowledges a purchase or subscription.
+
 - `purchaseToken`: Token from `purchase_updated` response.
 - Emits: `purchase_acknowledged` or `purchase_acknowledged_error`.
 
 ### Not Implemented Functions
+
 The following functions are included in the plugin as stubs but are not yet implemented:
+
 - `showInAppMessages()`
 - `launchPriceChangeConfirmationFlow(productDetails: Dictionary)`
 - `createAlternativeBillingOnlyReportingDetails()`
@@ -234,6 +260,7 @@ The following functions are included in the plugin as stubs but are not yet impl
 ## Implementation Guide
 
 ### 1. Querying for Available Products
+
 Once connected, you should query for the products you have set up in the Google Play Console.
 
 ```gdscript
@@ -256,6 +283,7 @@ func _on_query_product_details(response: Dictionary) -> void:
 ```
 
 ### 2. Initiating a Purchase
+
 To start a purchase, call the `purchase` or `subscribe` function with the appropriate product and base plan IDs.
 
 ```gdscript
@@ -269,6 +297,7 @@ func do_subscription(subscription_id: String, base_plan_id: String):
 ```
 
 ### 3. Processing Purchases
+
 The `purchase_updated` signal is the central place to handle all new purchases. You need to determine whether to acknowledge or consume the item.
 
 ```gdscript
@@ -296,6 +325,7 @@ func process_purchase(purchase: Dictionary) -> void:
 ```
 
 ### 4. Handling Consumed and Acknowledged Purchases
+
 Listen to the corresponding signals to confirm the transaction is complete and update the user's entitlements.
 
 ```gdscript
@@ -311,6 +341,7 @@ func _on_purchase_acknowledged(response: Dictionary) -> void:
 ```
 
 ### 5. Restoring Purchases
+
 To restore purchases (e.g., when a user reinstalls the app), query for their active purchases.
 
 ```gdscript
