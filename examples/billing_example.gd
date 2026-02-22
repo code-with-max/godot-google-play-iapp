@@ -1,6 +1,11 @@
-# AndroidIAPP is a plugin for the Godot game engine. 
-# It provides an interface to work with Google Play Billing Library version 7. 
+# AndroidIAPP is a plugin for the Godot game engine.
+# It provides an interface to work with Google Play Billing Library version 8.
 # The plugin supports all public functions of the library, passes all error codes, and can work with different subscription plans.
+#
+# Changes for version 8:
+# - The `query_product_details` signal now returns a dictionary that includes `unfetched_product_list`,
+#   which contains a list of products that could not be retrieved.
+#
 # https://developer.android.com/google/play/billing
 #
 # You can use this plugin with any node in Godot.
@@ -57,7 +62,7 @@ const ITEM_ACKNOWLEDGED: Array = [
 
 const SUBSCRIPTIONS: Array = [
 	"remove_ads_sub_01",
-	"test_iapp_v7",
+	"test_iapp_v8",
 	]
 
 
@@ -195,6 +200,11 @@ func _on_query_product_details(response) -> void:
 	for product in response["product_details_list"]:
 		G.product_showcase.append(product)
 	product_showcase_updated.emit()
+
+	if "unfetched_product_list" in response and not response["unfetched_product_list"].is_empty():
+		print("%s: Unfetched products:" % PLUGIN_NAME)
+		for unfetched_product in response["unfetched_product_list"]:
+			_print_json_with_prefix(PLUGIN_NAME, unfetched_product)
 
 
 func _on_query_purchases(response) -> void:

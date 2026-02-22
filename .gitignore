@@ -1,15 +1,32 @@
+# Gradle files
+.gradle/
+build/
+
+# IntelliJ / Android Studio
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.iws
+*.ipr
+
+# Специфичные файлы Android Studio
 local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Output artifacts
+*.aar
+*.jar
+*.apk
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Godot specific (на случай, если в этом же репо лежат демки)
+.godot/
+*.import/
+export_presets.cfg
