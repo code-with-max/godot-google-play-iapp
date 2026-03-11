@@ -102,7 +102,8 @@ object IAPP_utils {
             put("price_currency_code", offerDetails?.priceCurrencyCode ?: "")
             put("price_amount_micros", offerDetails?.priceAmountMicros ?: 0L)
             put("offer_token", offerDetails?.offerToken ?: "")
-            put("offer_id_token", offerDetails?.offerIdToken ?: "")
+            // offerId is the correct property name for OneTimePurchaseOfferDetails
+            put("offer_id_token", offerDetails?.offerId ?: "")
         }
     }
 

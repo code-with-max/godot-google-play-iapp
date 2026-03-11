@@ -315,7 +315,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             emitSignal(purchaseErrorSignal.name, returnDict)
             return
         }
-        Log.i(pluginName, "Starting purchase flow for $productID product")
+        Log.i(pluginName, "Starting purchase flow for $productID product. offerToken: $offerToken")
         launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized, manualOfferToken = offerToken)
     }
 
@@ -418,12 +418,14 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
         if (!manualOfferToken.isNullOrEmpty()) {
             selectedOfferToken = manualOfferToken
+            Log.i(pluginName, "Using manual offerToken: $selectedOfferToken")
         } else if (productType == BillingClient.ProductType.INAPP) {
             val offerList = productDetails.oneTimePurchaseOfferDetailsList
             if (offerList.isNullOrEmpty()) {
                 Log.w(pluginName, "oneTimePurchaseOfferDetailsList is empty for $productID")
             } else {
                 selectedOfferToken = offerList[0].offerToken
+                Log.i(pluginName, "Using auto-selected offerToken for INAPP: $selectedOfferToken")
             }
         } else if (productType == BillingClient.ProductType.SUBS) {
             val offerDetails = if (offerID == null) {
@@ -434,6 +436,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
             if (offerDetails != null) {
                 selectedOfferToken = offerDetails.offerToken
+                Log.i(pluginName, "Using selected offerToken for SUBS (basePlan: $basePlanID, offer: $offerID): $selectedOfferToken")
             } else {
                 val errorMessage = if (offerID == null) {
                     "Base Plan ID $basePlanID not found in $productID subscription"
@@ -490,7 +493,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             Log.e(pluginName, "$productID purchasing failed: ${purchasingResult.debugMessage}")
             emitSignal(purchaseErrorSignal.name, returnDict)
         } else {
-            Log.i(pluginName, "Product $productID purchasing launched successfully")
+            Log.i(pluginName, "Product $productID purchasing launched successfully with offerToken: $selectedOfferToken")
         }
     }
 
