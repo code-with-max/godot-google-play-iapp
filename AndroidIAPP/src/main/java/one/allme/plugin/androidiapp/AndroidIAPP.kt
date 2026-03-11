@@ -282,6 +282,10 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
                 Log.e(pluginName, "No product details found or an error occurred: ${billingResult.debugMessage}")
+                // If Google returns NO_ELIGIBLE_OFFER, it might be in unfetched_product_list or elsewhere depending on version, 
+                // but usually it's a response code or debug message. The requirement says:
+                // "If Google returns UnfetchedProduct with code NO_ELIGIBLE_OFFER, ensure this info is passed to error signal"
+                // The current convertQueryProductDetailsResultToDictionary already includes unfetched_product_list.
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
             }
@@ -289,7 +293,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     }
 
     @UsedByGodot
-    fun purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: Boolean) {
+    fun purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: Boolean, offerToken: String = "") {
         val returnDict = Dictionary()
         returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
         returnDict["debug_message"] = "Purchase called"
@@ -312,7 +316,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             return
         }
         Log.i(pluginName, "Starting purchase flow for $productID product")
-        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized)
+        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized, manualOfferToken = offerToken)
     }
 
     @UsedByGodot
@@ -378,7 +382,8 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         isOfferPersonalized: Boolean = false,
         oldPurchaseToken: String? = null,
         oldProductID: String? = null,
-        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE,
+        manualOfferToken: String? = null
     ) {
         val returnDict = Dictionary().apply {
             put("product_id", productID)
@@ -409,7 +414,18 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         val productDetailsParamsList = mutableListOf<BillingFlowParams.ProductDetailsParams>()
         val builder = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails)
 
-        if (productType == BillingClient.ProductType.SUBS) {
+        var selectedOfferToken: String? = null
+
+        if (!manualOfferToken.isNullOrEmpty()) {
+            selectedOfferToken = manualOfferToken
+        } else if (productType == BillingClient.ProductType.INAPP) {
+            val offerList = productDetails.oneTimePurchaseOfferDetailsList
+            if (offerList.isNullOrEmpty()) {
+                Log.w(pluginName, "oneTimePurchaseOfferDetailsList is empty for $productID")
+            } else {
+                selectedOfferToken = offerList[0].offerToken
+            }
+        } else if (productType == BillingClient.ProductType.SUBS) {
             val offerDetails = if (offerID == null) {
                 productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
             } else {
@@ -417,7 +433,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             }
 
             if (offerDetails != null) {
-                builder.setOfferToken(offerDetails.offerToken)
+                selectedOfferToken = offerDetails.offerToken
             } else {
                 val errorMessage = if (offerID == null) {
                     "Base Plan ID $basePlanID not found in $productID subscription"
@@ -430,6 +446,10 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                 emitSignal(purchaseErrorSignal.name, returnDict)
                 return
             }
+        }
+
+        if (selectedOfferToken != null) {
+            builder.setOfferToken(selectedOfferToken)
         }
 
         productDetailsParamsList.add(builder.build())

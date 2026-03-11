@@ -69,8 +69,11 @@ object IAPP_utils {
             put("to_string", productsDetails.toString() ?: "")
             
             if (productsDetails.productType == BillingClient.ProductType.INAPP) {
-                put("one_time_purchase_offer_details", convertPurchaseOfferToDict(productsDetails.oneTimePurchaseOfferDetails))
-                put("one_time_purchase_offer_details_list", convertOneTimePurchaseOfferListToArray(productsDetails.oneTimePurchaseOfferDetailsList))
+                // Deprecated in Billing 7.0+, replaced by oneTimePurchaseOfferDetailsList
+                // For backward compatibility, we can still populate it with the first item if available
+                val offerList = productsDetails.oneTimePurchaseOfferDetailsList
+                put("one_time_purchase_offer_details", convertPurchaseOfferToDict(offerList?.firstOrNull()))
+                put("one_time_purchase_offer_details_list", convertOneTimePurchaseOfferListToArray(offerList))
             } else if (productsDetails.productType == BillingClient.ProductType.SUBS) {
                 put("subscription_offer_details", convertSubscriptionsDetailsListToArray(productsDetails.subscriptionOfferDetails))
             }
@@ -98,6 +101,8 @@ object IAPP_utils {
             put("formatted_price", offerDetails?.formattedPrice ?: "")
             put("price_currency_code", offerDetails?.priceCurrencyCode ?: "")
             put("price_amount_micros", offerDetails?.priceAmountMicros ?: 0L)
+            put("offer_token", offerDetails?.offerToken ?: "")
+            put("offer_id_token", offerDetails?.offerIdToken ?: "")
         }
     }
 
