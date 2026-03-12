@@ -104,6 +104,7 @@ object IAPP_utils {
             put("offer_token", offerDetails?.offerToken ?: "")
             // offerId is the correct property name for OneTimePurchaseOfferDetails
             put("offer_id_token", offerDetails?.offerId ?: "")
+            put("offer_tags", offerDetails?.offerTags?.toTypedArray() ?: emptyArray<String>())
         }
     }
 
