@@ -1,6 +1,6 @@
 package one.allme.plugin.androidiapp
 
-import one.allme.plugin.androidiapp.utils.IAPP_utils
+import one.allme.plugin.androidiapp.utils.IappUtils
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
@@ -236,7 +236,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             val returnDict = billingResult.toDictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchases found")
-                returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
+                returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
                 Log.i(pluginName, "No purchase found or an error occurred.")
@@ -270,7 +270,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             .build()
 
         billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
-            val returnDict = IAPP_utils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
+            val returnDict = IappUtils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
             returnDict.putAll(billingResult.toDictionary())
 
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -282,6 +282,10 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
                 Log.e(pluginName, "No product details found or an error occurred: ${billingResult.debugMessage}")
+                // If Google returns NO_ELIGIBLE_OFFER, it might be in unfetched_product_list or elsewhere depending on version, 
+                // but usually it's a response code or debug message. The requirement says:
+                // "If Google returns UnfetchedProduct with code NO_ELIGIBLE_OFFER, ensure this info is passed to error signal"
+                // The current convertQueryProductDetailsResultToDictionary already includes unfetched_product_list.
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
             }
@@ -289,7 +293,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     }
 
     @UsedByGodot
-    fun purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: Boolean) {
+    fun purchase(listOfProductsIDs: Array<String>, isOfferPersonalized: Boolean, offerToken: String = "") {
         val returnDict = Dictionary()
         returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
         returnDict["debug_message"] = "Purchase called"
@@ -311,8 +315,8 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             emitSignal(purchaseErrorSignal.name, returnDict)
             return
         }
-        Log.i(pluginName, "Starting purchase flow for $productID product")
-        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized)
+        Log.i(pluginName, "Starting purchase flow for $productID product. offerToken: $offerToken")
+        launchPurchaseFlow(activity, productID, ProductType.INAPP, null, null, isOfferPersonalized, manualOfferToken = offerToken)
     }
 
     @UsedByGodot
@@ -378,7 +382,8 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         isOfferPersonalized: Boolean = false,
         oldPurchaseToken: String? = null,
         oldProductID: String? = null,
-        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE,
+        manualOfferToken: String? = null
     ) {
         val returnDict = Dictionary().apply {
             put("product_id", productID)
@@ -409,7 +414,20 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         val productDetailsParamsList = mutableListOf<BillingFlowParams.ProductDetailsParams>()
         val builder = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails)
 
-        if (productType == BillingClient.ProductType.SUBS) {
+        var selectedOfferToken: String? = null
+
+        if (!manualOfferToken.isNullOrEmpty()) {
+            selectedOfferToken = manualOfferToken
+            Log.i(pluginName, "Using manual offerToken: $selectedOfferToken")
+        } else if (productType == BillingClient.ProductType.INAPP) {
+            val offerList = productDetails.oneTimePurchaseOfferDetailsList
+            if (offerList.isNullOrEmpty()) {
+                Log.w(pluginName, "oneTimePurchaseOfferDetailsList is empty for $productID")
+            } else {
+                selectedOfferToken = offerList[0].offerToken
+                Log.i(pluginName, "Using auto-selected offerToken for INAPP: $selectedOfferToken")
+            }
+        } else if (productType == BillingClient.ProductType.SUBS) {
             val offerDetails = if (offerID == null) {
                 productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanID }
             } else {
@@ -417,7 +435,8 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             }
 
             if (offerDetails != null) {
-                builder.setOfferToken(offerDetails.offerToken)
+                selectedOfferToken = offerDetails.offerToken
+                Log.i(pluginName, "Using selected offerToken for SUBS (basePlan: $basePlanID, offer: $offerID): $selectedOfferToken")
             } else {
                 val errorMessage = if (offerID == null) {
                     "Base Plan ID $basePlanID not found in $productID subscription"
@@ -430,6 +449,10 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                 emitSignal(purchaseErrorSignal.name, returnDict)
                 return
             }
+        }
+
+        if (selectedOfferToken != null) {
+            builder.setOfferToken(selectedOfferToken)
         }
 
         productDetailsParamsList.add(builder.build())
@@ -470,7 +493,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             Log.e(pluginName, "$productID purchasing failed: ${purchasingResult.debugMessage}")
             emitSignal(purchaseErrorSignal.name, returnDict)
         } else {
-            Log.i(pluginName, "Product $productID purchasing launched successfully")
+            Log.i(pluginName, "Product $productID purchasing launched successfully with offerToken: $selectedOfferToken")
         }
     }
 
@@ -480,7 +503,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
                     Log.i(pluginName, "Purchases updated successfully")
-                    returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
+                    returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchases)
                     emitSignal(purchaseUpdatedSignal.name, returnDict)
                 }
             }
