@@ -1,6 +1,6 @@
 package one.allme.plugin.androidiapp
 
-import one.allme.plugin.androidiapp.utils.IAPP_utils
+import one.allme.plugin.androidiapp.utils.IappUtils
 import android.app.Activity
 import android.util.Log
 import android.widget.Toast
@@ -236,7 +236,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             val returnDict = billingResult.toDictionary()
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchases found")
-                returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchaseList)
+                returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
                 Log.i(pluginName, "No purchase found or an error occurred.")
@@ -270,7 +270,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             .build()
 
         billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
-            val returnDict = IAPP_utils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
+            val returnDict = IappUtils.convertQueryProductDetailsResultToDictionary(queryProductDetailsResult)
             returnDict.putAll(billingResult.toDictionary())
 
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -503,7 +503,7 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
                     Log.i(pluginName, "Purchases updated successfully")
-                    returnDict["purchases_list"] = IAPP_utils.convertPurchasesListToArray(purchases)
+                    returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchases)
                     emitSignal(purchaseUpdatedSignal.name, returnDict)
                 }
             }
