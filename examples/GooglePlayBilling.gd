@@ -5,7 +5,7 @@ extends Node
 # Иконка плагина (пока нет)
 # @icon("icon_billing.svg")
 
-## Универсальный мост для Google Play Billing Library 8.0.
+## Универсальный мост для Google Play Billing Library 9.1.0.
 ## Обеспечивает транспорт данных между Android-плагином и BillingHandler.
 ## Транслирует ВСЕ сигналы плагина и предоставляет доступ ко всем его методам.
 
@@ -53,6 +53,14 @@ enum BillingResponseCode {
 	NO_ELIGIBLE_OFFER = 13
 }
 
+## Состояние подключения BillingClient
+enum ConnectionState {
+	DISCONNECTED = 0,
+	CONNECTING = 1,
+	CONNECTED = 2,
+	CLOSED = 3
+}
+
 # --- Сигналы ---
 
 ## Плагин подключён к Google Play Billing
@@ -94,6 +102,42 @@ signal in_app_message_result(result: Dictionary)
 ## Результат подтверждения изменения цены подписки
 signal price_change_acknowledged(result: Dictionary)
 
+## Конфигурация биллинга получена (страна и т.д.)
+signal billing_config_received(config: Dictionary)
+
+## Результат проверки доступности Alternative Billing Only
+signal alternative_billing_only_availability_response(response: Dictionary)
+
+## Детали отчетности Alternative Billing Only
+signal alternative_billing_only_reporting_details_response(response: Dictionary)
+
+## Результат показа диалога информации Alternative Billing Only
+signal alternative_billing_only_information_dialog_response(response: Dictionary)
+
+## Результат проверки доступности External Offer
+signal external_offer_availability_response(response: Dictionary)
+
+## Детали отчетности External Offer
+signal external_offer_reporting_details_response(response: Dictionary)
+
+## Результат показа диалога информации External Offer
+signal external_offer_information_dialog_response(response: Dictionary)
+
+## Результат проверки доступности Billing Program
+signal billing_program_availability_response(response: Dictionary)
+
+## Детали отчетности Billing Program
+signal billing_program_reporting_details_response(response: Dictionary)
+
+## Результат показа диалога информации Billing Program
+signal billing_program_information_dialog_response(response: Dictionary)
+
+## Информация о выборе способов оплаты (Billing Choice Info)
+signal billing_choice_info_response(response: Dictionary)
+
+## Результат открытия внешней ссылки (Launch External Link)
+signal launch_external_link_response(response: Dictionary)
+
 
 # --- Приватные переменные ---
 
@@ -102,9 +146,7 @@ var _plugin: Object = null
 
 # --- Инициализация ---
 
-# Запускаем инициализацию при входе в дерево сцены
 func _ready() -> void:
-	# _initialize_plugin() # moved to handler
 	pass
 
 
@@ -117,7 +159,7 @@ func _initialize_plugin() -> void:
 	_plugin = Engine.get_singleton(PLUGIN_NAME)
 	_connect_signals()
 
-	print("[GOOGLE_PLAY_BILLING]: Плагин найден, запускаем соединение с Google Play...") ## TODO: Убрать в релизе
+	print("[GOOGLE_PLAY_BILLING]: Плагин найден, запускаем соединение с Google Play...")
 	_plugin.startConnection()
 
 
@@ -153,7 +195,6 @@ func _connect_signals() -> void:
 	_plugin.purchase_error.connect(func(res: Dictionary):
 		error_occurred.emit("purchase", res)
 	)
-	# Ошибка в onPurchasesUpdated (не cancel и не OK) — отдельный сигнал
 	_plugin.purchase_update_error.connect(func(res: Dictionary):
 		error_occurred.emit("purchase_update", res)
 	)
@@ -179,12 +220,59 @@ func _connect_signals() -> void:
 		error_occurred.emit("price_change", res)
 	)
 
+	# Billing Config
+	if _plugin.has_signal("billing_config_response"):
+		_plugin.billing_config_response.connect(func(res: Dictionary): billing_config_received.emit(res))
+
+	# Alternative Billing Only
+	if _plugin.has_signal("alternative_billing_only_availability_response"):
+		_plugin.alternative_billing_only_availability_response.connect(func(res: Dictionary): alternative_billing_only_availability_response.emit(res))
+	if _plugin.has_signal("alternative_billing_only_reporting_details_response"):
+		_plugin.alternative_billing_only_reporting_details_response.connect(func(res: Dictionary): alternative_billing_only_reporting_details_response.emit(res))
+	if _plugin.has_signal("alternative_billing_only_information_dialog_response"):
+		_plugin.alternative_billing_only_information_dialog_response.connect(func(res: Dictionary): alternative_billing_only_information_dialog_response.emit(res))
+
+	# External Offer
+	if _plugin.has_signal("external_offer_availability_response"):
+		_plugin.external_offer_availability_response.connect(func(res: Dictionary): external_offer_availability_response.emit(res))
+	if _plugin.has_signal("external_offer_reporting_details_response"):
+		_plugin.external_offer_reporting_details_response.connect(func(res: Dictionary): external_offer_reporting_details_response.emit(res))
+	if _plugin.has_signal("external_offer_information_dialog_response"):
+		_plugin.external_offer_information_dialog_response.connect(func(res: Dictionary): external_offer_information_dialog_response.emit(res))
+
+	# Billing Program
+	if _plugin.has_signal("billing_program_availability_response"):
+		_plugin.billing_program_availability_response.connect(func(res: Dictionary): billing_program_availability_response.emit(res))
+	if _plugin.has_signal("billing_program_reporting_details_response"):
+		_plugin.billing_program_reporting_details_response.connect(func(res: Dictionary): billing_program_reporting_details_response.emit(res))
+	if _plugin.has_signal("billing_program_information_dialog_response"):
+		_plugin.billing_program_information_dialog_response.connect(func(res: Dictionary): billing_program_information_dialog_response.emit(res))
+
+	# Billing Choice Info & Launch External Link
+	if _plugin.has_signal("billing_choice_info_response"):
+		_plugin.billing_choice_info_response.connect(func(res: Dictionary): billing_choice_info_response.emit(res))
+	if _plugin.has_signal("launch_external_link_response"):
+		_plugin.launch_external_link_response.connect(func(res: Dictionary): launch_external_link_response.emit(res))
+
 
 # --- Публичные методы API ---
 
 ## Проверка готовности плагина к работе
 func is_ready() -> bool:
 	return _plugin.isReady() if _plugin else false
+
+
+## Получить состояние подключения BillingClient (0=DISCONNECTED, 1=CONNECTING, 2=CONNECTED, 3=CLOSED)
+func get_connection_state() -> int:
+	return _plugin.getConnectionState() if _plugin else 0
+
+
+## Проверить поддержку функции Google Play Billing
+func is_feature_supported(feature: String) -> Dictionary:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return {"response_code": BillingResponseCode.ERROR, "debug_message": "Plugin not initialized"}
+	return _plugin.isFeatureSupported(feature)
 
 
 ## Тестовый запрос к плагину. Ответ придёт в сигнал hello_response
@@ -201,6 +289,14 @@ func end_connection() -> void:
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
 		return
 	_plugin.endConnection()
+
+
+## Запрос конфигурации биллинга (например, код страны пользователя)
+func get_billing_config() -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, get_billing_config пропущен.")
+		return
+	_plugin.getBillingConfig()
 
 
 ## Запрос деталей продуктов (цены, офферы, теги).
@@ -236,7 +332,6 @@ func subscribe(id: String, base_plan_id: String, offer_id: String = "", is_perso
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, subscribe пропущен.")
 		return
-	# Kotlin-плагин ожидает массивы для синхронизации индексов списков
 	_plugin.subscribe([id], [base_plan_id], [offer_id], is_personalized)
 
 
@@ -279,8 +374,7 @@ func show_in_app_messages() -> void:
 	_plugin.showInAppMessages()
 
 
-## Запустить flow подтверждения изменения цены подписки.
-## product_details — словарь с данными продукта из product_details_received
+## Запустить flow подтверждения изменения цены подписки (устарело в Billing 7+)
 func launch_price_change_flow(product_details: Dictionary) -> void:
 	if not _plugin:
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
@@ -288,14 +382,100 @@ func launch_price_change_flow(product_details: Dictionary) -> void:
 	_plugin.launchPriceChangeConfirmationFlow(product_details)
 
 
+## Проверить доступность Alternative Billing Only
+func is_alternative_billing_only_available() -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, is_alternative_billing_only_available пропущен.")
+		return
+	_plugin.isAlternativeBillingOnlyAvailable()
+
+
+## Создать детали отчетности Alternative Billing Only
+func create_alternative_billing_only_reporting_details() -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, create_alternative_billing_only_reporting_details пропущен.")
+		return
+	_plugin.createAlternativeBillingOnlyReportingDetails()
+
+
+## Показать диалог информации Alternative Billing Only
+func show_alternative_billing_only_information_dialog() -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.showAlternativeBillingOnlyInformationDialog()
+
+
+## Проверить доступность External Offer
+func is_external_offer_available() -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, is_external_offer_available пропущен.")
+		return
+	_plugin.isExternalOfferAvailable()
+
+
+## Создать детали отчетности External Offer
+func create_external_offer_reporting_details() -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, create_external_offer_reporting_details пропущен.")
+		return
+	_plugin.createExternalOfferReportingDetails()
+
+
+## Показать диалог информации External Offer
+func show_external_offer_information_dialog() -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.showExternalOfferInformationDialog()
+
+
+## Проверить доступность Billing Program
+func is_billing_program_available(program_type: int) -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, is_billing_program_available пропущен.")
+		return
+	_plugin.isBillingProgramAvailable(program_type)
+
+
+## Создать детали отчетности Billing Program
+func create_billing_program_reporting_details(program_type: int, developer_billing_type: int = 0) -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, create_billing_program_reporting_details пропущен.")
+		return
+	_plugin.createBillingProgramReportingDetails(program_type, developer_billing_type)
+
+
+## Показать диалог информации Billing Program
+func show_billing_program_information_dialog(program_type: int, external_transaction_token: String = "") -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.showBillingProgramInformationDialog(program_type, external_transaction_token)
+
+
+## Запрос информации о выборе способов оплаты (Billing Choice Info)
+func get_billing_choice_info(program_type: int = 0) -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, get_billing_choice_info пропущен.")
+		return
+	_plugin.getBillingChoiceInfo(program_type)
+
+
+## Открыть внешнюю ссылку (Launch External Link)
+func launch_external_link(link_uri: String, link_type: int = 0, launch_mode: int = 0, program_type: int = 0, external_transaction_token: String = "") -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.launchExternalLink(link_uri, link_type, launch_mode, program_type, external_transaction_token)
+
+
 # --- Внутренние обработчики ---
 
-# Распаковывает ответ плагина и транслирует список продуктов и нераспознанных товаров
 func _on_product_details_received(response: Dictionary) -> void:
 	var list: Array = response.get("product_details_list", [])
 	var unfetched: Array = response.get("unfetched_product_list", [])
 
-	# Определяем тип по первому продукту в списке
 	var type: String = TYPE_INAPP
 	if list.size() > 0:
 		type = list[0].get("product_type", TYPE_INAPP)
