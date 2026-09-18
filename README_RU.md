@@ -81,13 +81,40 @@ func _on_purchases_updated(purchases: Array):
 
 ---
 
-## 🛠 Полезные сигналы `GooglePlayBilling.gd`
+## 🛠 Все сигналы `GooglePlayBilling.gd`
 
-*   `connected` — можно начинать работу.
-*   `error_occurred(method, data)` — что-то пошло не так (например, нет интернета).
-*   `product_details_received(products, ...)` — пришли цены и описания.
-*   `purchases_updated(purchases)` — сработал после покупки или при проверке активных товаров.
-*   `consumed_success(token)` — товар успешно "съеден", можно начислить награду.
+### Основные и технические сигналы
+*   `connected` — успешно подключено к Google Play Billing, можно начинать работу.
+*   `disconnected` — произошел сброс подключения к Google Play Billing.
+*   `error_occurred(fun_name, response)` — возникла ошибка при выполнении операции. `fun_name` — имя метода, `response` — словарь с `response_code` и `debug_message`.
+*   `billing_info_received(info)` — техническая диагностическая информация от плагина.
+*   `hello_response(message)` — ответ на тестовый вызов `say_hello`.
+
+### Продукты и покупки
+*   `product_details_received(products, unfetched, type)` — получены детали товаров (цены, описания, офферы). `products` — список доступных продуктов, `unfetched` — ненайденные продукты, `type` — тип (`inapp`/`subs`).
+*   `purchases_queried(purchases)` — получен список активных покупок пользователя в ответ на `query_purchases`.
+*   `purchases_updated(purchases)` — сработал после покупки или при обновлении списка покупок.
+*   `purchase_cancelled` — пользователь отменил процесс покупки.
+*   `consumed_success(token)` — товар успешно "съеден" (consumed), можно зачислить награду.
+*   `acknowledged_success(token)` — покупка или подписка успешно подтверждена (acknowledged).
+
+### Конфигурация и подписки
+*   `in_app_message_result(result)` — результат показа In-App сообщения Google Play.
+*   `price_change_acknowledged(result)` — результат подтверждения изменения цены подписки.
+*   `billing_config_received(config)` — получена конфигурация биллинга (код страны пользователя и др.).
+
+### Альтернативная оплата и внешние ссылки
+*   `alternative_billing_only_availability_response(response)` — результат проверки доступности Alternative Billing Only.
+*   `alternative_billing_only_reporting_details_response(response)` — детали отчетности Alternative Billing Only.
+*   `alternative_billing_only_information_dialog_response(response)` — результат показа диалога Alternative Billing Only.
+*   `external_offer_availability_response(response)` — результат проверки доступности External Offer.
+*   `external_offer_reporting_details_response(response)` — детали отчетности External Offer.
+*   `external_offer_information_dialog_response(response)` — результат показа диалога External Offer.
+*   `billing_program_availability_response(response)` — результат проверки доступности Billing Program.
+*   `billing_program_reporting_details_response(response)` — детали отчетности Billing Program.
+*   `billing_program_information_dialog_response(response)` — результат показа диалога Billing Program.
+*   `billing_choice_info_response(response)` — информация о выборе способов оплаты.
+*   `launch_external_link_response(response)` — результат открытия внешней ссылки.
 
 ---
 

@@ -81,13 +81,40 @@ func _on_purchases_updated(purchases: Array):
 
 ---
 
-## 🛠 Useful Signals in `GooglePlayBilling.gd`
+## 🛠 All Signals in `GooglePlayBilling.gd`
 
-*   `connected` — ready to start.
-*   `error_occurred(method, data)` — something went wrong (e.g., no internet).
-*   `product_details_received(products, ...)` — prices and descriptions received.
-*   `purchases_updated(purchases)` — triggered after a purchase or during active product checks.
-*   `consumed_success(token)` — product successfully "consumed", reward can be granted.
+### Core and Technical Signals
+*   `connected` — successfully connected to Google Play Billing, ready to start.
+*   `disconnected` — disconnected from Google Play Billing.
+*   `error_occurred(fun_name, response)` — triggered on error. `fun_name` is the method name, `response` contains `response_code` and `debug_message`.
+*   `billing_info_received(info)` — technical diagnostic information from the plugin.
+*   `hello_response(message)` — response from test `say_hello` call.
+
+### Products and Purchases
+*   `product_details_received(products, unfetched, type)` — product details (prices, descriptions, offers) received. `products` is an array of details, `unfetched` contains unfetched items, `type` is `inapp` or `subs`.
+*   `purchases_queried(purchases)` — user's active purchases retrieved in response to `query_purchases`.
+*   `purchases_updated(purchases)` — triggered after a successful purchase or when purchase list is updated.
+*   `purchase_cancelled` — user cancelled the purchase flow.
+*   `consumed_success(token)` — consumable product successfully consumed, reward can be granted.
+*   `acknowledged_success(token)` — non-consumable item or subscription successfully acknowledged.
+
+### Configuration and Subscriptions
+*   `in_app_message_result(result)` — result of showing Google Play In-App message.
+*   `price_change_acknowledged(result)` — result of subscription price change acknowledgement.
+*   `billing_config_received(config)` — billing configuration (e.g., user country code) received.
+
+### Alternative Billing and External Offers
+*   `alternative_billing_only_availability_response(response)` — result of checking Alternative Billing Only availability.
+*   `alternative_billing_only_reporting_details_response(response)` — Alternative Billing Only reporting details.
+*   `alternative_billing_only_information_dialog_response(response)` — result of showing Alternative Billing Only information dialog.
+*   `external_offer_availability_response(response)` — result of checking External Offer availability.
+*   `external_offer_reporting_details_response(response)` — External Offer reporting details.
+*   `external_offer_information_dialog_response(response)` — result of showing External Offer information dialog.
+*   `billing_program_availability_response(response)` — result of checking Billing Program availability.
+*   `billing_program_reporting_details_response(response)` — Billing Program reporting details.
+*   `billing_program_information_dialog_response(response)` — result of showing Billing Program information dialog.
+*   `billing_choice_info_response(response)` — billing choice info received.
+*   `launch_external_link_response(response)` — result of launching external link.
 
 ---
 
