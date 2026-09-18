@@ -300,13 +300,13 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
             val returnDict = billingResult.toDictionary()
+            val purchasesDict = IappUtils.convertPurchasesListToDictionary(purchaseList)
+            returnDict.putAll(purchasesDict)
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(pluginName, "Purchases found")
-                returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchaseList)
                 emitSignal(queryPurchasesSignal.name, returnDict)
             } else {
                 Log.i(pluginName, "No purchase found or an error occurred.")
-                returnDict["purchases_list"] = null
                 emitSignal(queryPurchasesErrorSignal.name, returnDict)
             }
         }
@@ -559,13 +559,12 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
         val returnDict = billingResult.toDictionary()
+        val purchasesDict = IappUtils.convertPurchasesListToDictionary(purchases)
+        returnDict.putAll(purchasesDict)
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
-                if (purchases != null) {
-                    Log.i(pluginName, "Purchases updated successfully")
-                    returnDict["purchases_list"] = IappUtils.convertPurchasesListToArray(purchases)
-                    emitSignal(purchaseUpdatedSignal.name, returnDict)
-                }
+                Log.i(pluginName, "Purchases updated successfully")
+                emitSignal(purchaseUpdatedSignal.name, returnDict)
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.i(pluginName, "User canceled purchase updating")
