@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const BILLING_VERSION ="8.3.0"
+const BILLING_VERSION = "9.1.0"
 
 var exportPlugin = AndroidExportPlugin
 
@@ -40,11 +40,9 @@ class AndroidExportPlugin extends EditorExportPlugin:
 	func _get_android_dependencies(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
 		if debug:
 			return PackedStringArray([
-				"com.android.billingclient:billing-ktx:%s" % BILLING_VERSION, # "7.1.1",
-				# "com.android.billingclient:billing:7.0.0", # deprecated
+				"com.android.billingclient:billing-ktx:%s" % BILLING_VERSION,
 				])
 		else:
 			return PackedStringArray([
-				"com.android.billingclient:billing-ktx:%s" % BILLING_VERSION, # "7.1.1",
-				# "com.android.billingclient:billing:7.0.0", # deprecated
+				"com.android.billingclient:billing-ktx:%s" % BILLING_VERSION,
 				])

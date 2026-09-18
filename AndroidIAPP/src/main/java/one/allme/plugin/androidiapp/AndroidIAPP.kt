@@ -2,6 +2,7 @@ package one.allme.plugin.androidiapp
 
 import one.allme.plugin.androidiapp.utils.IappUtils
 import android.app.Activity
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import android.os.Handler
@@ -12,8 +13,14 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingProgramInformationDialogParams
+import com.android.billingclient.api.BillingProgramReportingDetailsParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.GetBillingChoiceInfoParams
+import com.android.billingclient.api.GetBillingConfigParams
+import com.android.billingclient.api.InAppMessageParams
+import com.android.billingclient.api.LaunchExternalLinkParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.PurchasesUpdatedListener
@@ -61,6 +68,20 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     private val inAppMessageResultSignal = SignalInfo("in_app_message_result", Dictionary::class.java)
     private val alternativeBillingOnlyTransactionReportedSignal = SignalInfo("alternative_billing_only_transaction_reported", Dictionary::class.java)
 
+    // New signals for Billing Library v9 methods
+    private val billingConfigResponseSignal = SignalInfo("billing_config_response", Dictionary::class.java)
+    private val alternativeBillingOnlyAvailabilitySignal = SignalInfo("alternative_billing_only_availability_response", Dictionary::class.java)
+    private val alternativeBillingOnlyReportingDetailsSignal = SignalInfo("alternative_billing_only_reporting_details_response", Dictionary::class.java)
+    private val alternativeBillingOnlyInformationDialogSignal = SignalInfo("alternative_billing_only_information_dialog_response", Dictionary::class.java)
+    private val externalOfferAvailabilitySignal = SignalInfo("external_offer_availability_response", Dictionary::class.java)
+    private val externalOfferReportingDetailsSignal = SignalInfo("external_offer_reporting_details_response", Dictionary::class.java)
+    private val externalOfferInformationDialogSignal = SignalInfo("external_offer_information_dialog_response", Dictionary::class.java)
+    private val billingProgramAvailabilitySignal = SignalInfo("billing_program_availability_response", Dictionary::class.java)
+    private val billingProgramReportingDetailsSignal = SignalInfo("billing_program_reporting_details_response", Dictionary::class.java)
+    private val billingProgramInformationDialogSignal = SignalInfo("billing_program_information_dialog_response", Dictionary::class.java)
+    private val billingChoiceInfoSignal = SignalInfo("billing_choice_info_response", Dictionary::class.java)
+    private val launchExternalLinkSignal = SignalInfo("launch_external_link_response", Dictionary::class.java)
+
     override fun getPluginName(): String {
         return pluginName
     }
@@ -74,7 +95,13 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             purchaseUpdatedSignal, purchaseCancelledSignal, purchaseUpdatedErrorSignal,
             purchaseConsumedSignal, purchaseConsumedErrorSignal, purchaseAcknowledgedSignal,
             purchaseAcknowledgedErrorSignal, billingInfoSignal, priceChangeAcknowledgedSignal,
-            priceChangeErrorSignal, inAppMessageResultSignal, alternativeBillingOnlyTransactionReportedSignal
+            priceChangeErrorSignal, inAppMessageResultSignal, alternativeBillingOnlyTransactionReportedSignal,
+            billingConfigResponseSignal, alternativeBillingOnlyAvailabilitySignal,
+            alternativeBillingOnlyReportingDetailsSignal, alternativeBillingOnlyInformationDialogSignal,
+            externalOfferAvailabilitySignal, externalOfferReportingDetailsSignal,
+            externalOfferInformationDialogSignal, billingProgramAvailabilitySignal,
+            billingProgramReportingDetailsSignal, billingProgramInformationDialogSignal,
+            billingChoiceInfoSignal, launchExternalLinkSignal
         )
     }
 
@@ -112,12 +139,32 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     fun isReady(): Boolean {
         return if (::billingClient.isInitialized) {
             val readyState = billingClient.isReady
-            // Оставляем лог для дебага в logcat
             Log.d(pluginName, "BILLING: isReady check: $readyState")
             readyState
         } else {
             Log.w(pluginName, "BILLING: isReady called but billingClient not initialized")
             false
+        }
+    }
+
+    @UsedByGodot
+    fun getConnectionState(): Int {
+        return if (::billingClient.isInitialized) {
+            billingClient.connectionState
+        } else {
+            BillingClient.ConnectionState.DISCONNECTED
+        }
+    }
+
+    @UsedByGodot
+    fun isFeatureSupported(feature: String): Dictionary {
+        return if (::billingClient.isInitialized) {
+            billingClient.isFeatureSupported(feature).toDictionary()
+        } else {
+            Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "BillingClient is not initialized")
+            }
         }
     }
 
@@ -146,8 +193,6 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
             postToast()
         }
     }
-
-
 
     @UsedByGodot
     fun startConnection() {
@@ -223,6 +268,27 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
     }
 
     @UsedByGodot
+    fun getBillingConfig() {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready. Cannot get billing config.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(billingConfigResponseSignal.name, returnDict)
+            return
+        }
+        val params = GetBillingConfigParams.newBuilder().build()
+        billingClient.getBillingConfigAsync(params) { billingResult, billingConfig ->
+            val returnDict = billingResult.toDictionary()
+            if (billingConfig != null) {
+                returnDict["country_code"] = billingConfig.countryCode
+            }
+            emitSignal(billingConfigResponseSignal.name, returnDict)
+        }
+    }
+
+    @UsedByGodot
     fun queryPurchases(productType: String = ProductType.INAPP, includeSuspended: Boolean = false) {
         if (!isReady()) {
             Log.e(pluginName, "Billing client is not ready. Cannot query purchases.")
@@ -282,10 +348,6 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                 emitSignal(queryProductDetailsSignal.name, returnDict)
             } else {
                 Log.e(pluginName, "No product details found or an error occurred: ${billingResult.debugMessage}")
-                // If Google returns NO_ELIGIBLE_OFFER, it might be in unfetched_product_list or elsewhere depending on version, 
-                // but usually it's a response code or debug message. The requirement says:
-                // "If Google returns UnfetchedProduct with code NO_ELIGIBLE_OFFER, ensure this info is passed to error signal"
-                // The current convertQueryProductDetailsResultToDictionary already includes unfetched_product_list.
                 returnDict["debug_message"] = billingResult.debugMessage
                 emitSignal(queryProductDetailsErrorSignal.name, returnDict)
             }
@@ -332,7 +394,6 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
         val productID = listOfProductsIDs.firstOrNull()
         val basePlanID = basePlanIDs.firstOrNull()
         val offerID = offerIDs.firstOrNull()
-
 
         if (productID.isNullOrBlank() || basePlanID.isNullOrBlank()) {
             Log.e(pluginName, "Product ID or Base Plan ID is missing.")
@@ -479,7 +540,6 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
                     .build()
                 builder.setSubscriptionProductReplacementParams(replacementParams)
             } else if (replacementMode != BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE) {
-                // Fallback for older logic if oldProductID is not provided
                 @Suppress("DEPRECATION")
                 updateParamsBuilder.setSubscriptionReplacementMode(replacementMode)
             }
@@ -562,47 +622,291 @@ class AndroidIAPP(godot: Godot?) : GodotPlugin(godot), PurchasesUpdatedListener,
 
     @UsedByGodot
     fun showInAppMessages() {
-        Log.w(pluginName, "showInAppMessages is not yet implemented.")
         val returnDict = Dictionary()
-        returnDict["status"] = "not_implemented"
-        returnDict["fun_name"] = "showInAppMessages"
-        returnDict["debug_message"] = "showInAppMessages is not yet implemented."
-        emitSignal(inAppMessageResultSignal.name, returnDict)
-        sendInfoSignal(returnDict)
+        val activity = activity
+        if (activity == null || !isReady()) {
+            Log.e(pluginName, "Cannot show in-app messages: Activity is null or BillingClient is not ready.")
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null or BillingClient is not ready"
+            emitSignal(inAppMessageResultSignal.name, returnDict)
+            return
+        }
+        val params = InAppMessageParams.newBuilder()
+            .addAllInAppMessageCategoriesToShow()
+            .build()
+        val billingResult = billingClient.showInAppMessages(activity, params) { inAppMessageResult ->
+            val resultDict = Dictionary()
+            resultDict["response_code"] = inAppMessageResult.responseCode
+            resultDict["purchase_token"] = inAppMessageResult.purchaseToken ?: ""
+            emitSignal(inAppMessageResultSignal.name, resultDict)
+        }
+        if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            returnDict.putAll(billingResult.toDictionary())
+            emitSignal(inAppMessageResultSignal.name, returnDict)
+        }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     @UsedByGodot
     fun launchPriceChangeConfirmationFlow(productDetails: Dictionary) {
-        Log.w(pluginName, "launchPriceChangeConfirmationFlow is not yet implemented.")
+        Log.w(pluginName, "launchPriceChangeConfirmationFlow was deprecated and removed in Billing Library 7+.")
         val returnDict = Dictionary()
-        returnDict["status"] = "not_implemented"
+        returnDict["status"] = "deprecated"
         returnDict["fun_name"] = "launchPriceChangeConfirmationFlow"
-        returnDict["debug_message"] = "launchPriceChangeConfirmationFlow is not yet implemented."
+        returnDict["debug_message"] = "launchPriceChangeConfirmationFlow was deprecated and removed in Billing Library 7+."
         returnDict["see_details"] = "https://developer.android.com/google/play/billing/subscriptions#price-change"
         emitSignal(priceChangeErrorSignal.name, returnDict)
         sendInfoSignal(returnDict)
     }
 
     @UsedByGodot
-    fun createAlternativeBillingOnlyReportingDetails() {
-        Log.w(pluginName, "createAlternativeBillingOnlyReportingDetails is not yet implemented.")
-        val returnDict = Dictionary()
-        returnDict["status"] = "not_implemented"
-        returnDict["fun_name"] = "createAlternativeBillingOnlyReportingDetails"
-        returnDict["debug_message"] = "createAlternativeBillingOnlyReportingDetails is not yet implemented."
-        returnDict["see_details"] = "https://developer.android.com/google/play/billing/alternative"
-        sendInfoSignal(returnDict)
+    fun isAlternativeBillingOnlyAvailable() {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(alternativeBillingOnlyAvailabilitySignal.name, returnDict)
+            return
+        }
+        billingClient.isAlternativeBillingOnlyAvailableAsync { billingResult ->
+            emitSignal(alternativeBillingOnlyAvailabilitySignal.name, billingResult.toDictionary())
+        }
     }
 
     @UsedByGodot
-    fun reportAlternativeBillingOnlyTransaction(reportingDetails: Dictionary) {
-        Log.w(pluginName, "reportAlternativeBillingOnlyTransaction is not yet implemented.")
+    fun createAlternativeBillingOnlyReportingDetails() {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(alternativeBillingOnlyReportingDetailsSignal.name, returnDict)
+            return
+        }
+        billingClient.createAlternativeBillingOnlyReportingDetailsAsync { billingResult, reportingDetails ->
+            val returnDict = billingResult.toDictionary()
+            if (reportingDetails != null) {
+                returnDict["external_transaction_token"] = reportingDetails.externalTransactionToken
+            }
+            emitSignal(alternativeBillingOnlyReportingDetailsSignal.name, returnDict)
+        }
+    }
+
+    @UsedByGodot
+    fun showAlternativeBillingOnlyInformationDialog() {
         val returnDict = Dictionary()
-        returnDict["status"] = "not_implemented"
+        val activity = activity
+        if (activity == null || !isReady()) {
+            Log.e(pluginName, "Cannot show alternative billing only dialog: Activity is null or BillingClient is not ready.")
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null or BillingClient is not ready"
+            emitSignal(alternativeBillingOnlyInformationDialogSignal.name, returnDict)
+            return
+        }
+        val billingResult = billingClient.showAlternativeBillingOnlyInformationDialog(activity) { dialogResult ->
+            emitSignal(alternativeBillingOnlyInformationDialogSignal.name, dialogResult.toDictionary())
+        }
+        if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            emitSignal(alternativeBillingOnlyInformationDialogSignal.name, billingResult.toDictionary())
+        }
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    @UsedByGodot
+    fun reportAlternativeBillingOnlyTransaction(reportingDetails: Dictionary) {
+        Log.w(pluginName, "reportAlternativeBillingOnlyTransaction was replaced in Billing Library 7+ by createAlternativeBillingOnlyReportingDetails.")
+        val returnDict = Dictionary()
+        returnDict["status"] = "deprecated"
         returnDict["fun_name"] = "reportAlternativeBillingOnlyTransaction"
-        returnDict["debug_message"] = "reportAlternativeBillingOnlyTransaction is not yet implemented."
+        returnDict["debug_message"] = "reportAlternativeBillingOnlyTransaction was replaced in Billing Library 7+ by createAlternativeBillingOnlyReportingDetails."
         returnDict["see_details"] = "https://developer.android.com/google/play/billing/alternative"
         emitSignal(alternativeBillingOnlyTransactionReportedSignal.name, returnDict)
         sendInfoSignal(returnDict)
+    }
+
+    @Suppress("DEPRECATION")
+    @UsedByGodot
+    fun isExternalOfferAvailable() {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(externalOfferAvailabilitySignal.name, returnDict)
+            return
+        }
+        billingClient.isExternalOfferAvailableAsync { billingResult ->
+            emitSignal(externalOfferAvailabilitySignal.name, billingResult.toDictionary())
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @UsedByGodot
+    fun createExternalOfferReportingDetails() {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(externalOfferReportingDetailsSignal.name, returnDict)
+            return
+        }
+        billingClient.createExternalOfferReportingDetailsAsync { billingResult, reportingDetails ->
+            val returnDict = billingResult.toDictionary()
+            if (reportingDetails != null) {
+                returnDict["external_transaction_token"] = reportingDetails.externalTransactionToken
+            }
+            emitSignal(externalOfferReportingDetailsSignal.name, returnDict)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @UsedByGodot
+    fun showExternalOfferInformationDialog() {
+        val returnDict = Dictionary()
+        val activity = activity
+        if (activity == null || !isReady()) {
+            Log.e(pluginName, "Cannot show external offer dialog: Activity is null or BillingClient is not ready.")
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null or BillingClient is not ready"
+            emitSignal(externalOfferInformationDialogSignal.name, returnDict)
+            return
+        }
+        val billingResult = billingClient.showExternalOfferInformationDialog(activity) { dialogResult ->
+            emitSignal(externalOfferInformationDialogSignal.name, dialogResult.toDictionary())
+        }
+        if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            emitSignal(externalOfferInformationDialogSignal.name, billingResult.toDictionary())
+        }
+    }
+
+    @UsedByGodot
+    fun isBillingProgramAvailable(programType: Int) {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(billingProgramAvailabilitySignal.name, returnDict)
+            return
+        }
+        billingClient.isBillingProgramAvailableAsync(programType) { billingResult, availabilityDetails ->
+            val returnDict = billingResult.toDictionary()
+            returnDict["billing_program"] = availabilityDetails?.billingProgram ?: programType
+            emitSignal(billingProgramAvailabilitySignal.name, returnDict)
+        }
+    }
+
+    @UsedByGodot
+    fun createBillingProgramReportingDetails(programType: Int, developerBillingType: Int = 0) {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(billingProgramReportingDetailsSignal.name, returnDict)
+            return
+        }
+        val params = BillingProgramReportingDetailsParams.newBuilder()
+            .setBillingProgram(programType)
+            .setDeveloperBillingType(developerBillingType)
+            .build()
+        billingClient.createBillingProgramReportingDetailsAsync(params) { billingResult, reportingDetails ->
+            val returnDict = billingResult.toDictionary()
+            if (reportingDetails != null) {
+                returnDict["external_transaction_token"] = reportingDetails.externalTransactionToken
+                returnDict["billing_program"] = reportingDetails.billingProgram
+            }
+            emitSignal(billingProgramReportingDetailsSignal.name, returnDict)
+        }
+    }
+
+    @UsedByGodot
+    fun showBillingProgramInformationDialog(programType: Int, externalTransactionToken: String = "") {
+        val returnDict = Dictionary()
+        val activity = activity
+        if (activity == null || !isReady()) {
+            Log.e(pluginName, "Cannot show billing program dialog: Activity is null or BillingClient is not ready.")
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null or BillingClient is not ready"
+            emitSignal(billingProgramInformationDialogSignal.name, returnDict)
+            return
+        }
+        val paramsBuilder = BillingProgramInformationDialogParams.newBuilder()
+            .setBillingProgram(programType)
+        if (externalTransactionToken.isNotEmpty()) {
+            paramsBuilder.setExternalTransactionToken(externalTransactionToken)
+        }
+        billingClient.showBillingProgramInformationDialog(activity, paramsBuilder.build()) { dialogResult ->
+            emitSignal(billingProgramInformationDialogSignal.name, dialogResult.toDictionary())
+        }
+    }
+
+    @UsedByGodot
+    fun getBillingChoiceInfo(programType: Int = 0) {
+        if (!isReady()) {
+            Log.e(pluginName, "Billing client is not ready.")
+            val returnDict = Dictionary().apply {
+                put("response_code", BillingClient.BillingResponseCode.ERROR)
+                put("debug_message", "Billing client is not ready")
+            }
+            emitSignal(billingChoiceInfoSignal.name, returnDict)
+            return
+        }
+        val params = GetBillingChoiceInfoParams.newBuilder()
+            .setBillingProgram(programType)
+            .build()
+        billingClient.getBillingChoiceInfoAsync(params) { billingResult, choiceInfo ->
+            val returnDict = billingResult.toDictionary()
+            if (choiceInfo != null) {
+                returnDict["play_billing_choice_image_url"] = choiceInfo.playBillingChoiceImageUrl
+                returnDict["play_billing_loyalty_info"] = choiceInfo.playBillingLoyaltyInfo
+            }
+            emitSignal(billingChoiceInfoSignal.name, returnDict)
+        }
+    }
+
+    @UsedByGodot
+    fun launchExternalLink(
+        linkUri: String,
+        linkType: Int = 0,
+        launchMode: Int = 0,
+        programType: Int = 0,
+        externalTransactionToken: String = ""
+    ) {
+        val returnDict = Dictionary()
+        val activity = activity
+        if (activity == null || !isReady()) {
+            Log.e(pluginName, "Cannot launch external link: Activity is null or BillingClient is not ready.")
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Activity is null or BillingClient is not ready"
+            emitSignal(launchExternalLinkSignal.name, returnDict)
+            return
+        }
+        try {
+            val paramsBuilder = LaunchExternalLinkParams.newBuilder()
+                .setLinkUri(Uri.parse(linkUri))
+                .setLinkType(linkType)
+                .setLaunchMode(launchMode)
+                .setBillingProgram(programType)
+            if (externalTransactionToken.isNotEmpty()) {
+                paramsBuilder.setExternalTransactionToken(externalTransactionToken)
+            }
+            billingClient.launchExternalLink(activity, paramsBuilder.build()) { linkResult ->
+                emitSignal(launchExternalLinkSignal.name, linkResult.toDictionary())
+            }
+        } catch (e: Exception) {
+            Log.e(pluginName, "Error launching external link: ${e.message}", e)
+            returnDict["response_code"] = BillingClient.BillingResponseCode.ERROR
+            returnDict["debug_message"] = "Error launching external link: ${e.message}"
+            emitSignal(launchExternalLinkSignal.name, returnDict)
+        }
     }
 }
