@@ -29,7 +29,7 @@ jobs:
         run: ./gradlew assemble
 
       - name: Upload AAR Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: androidiapp-aars
           path: |
