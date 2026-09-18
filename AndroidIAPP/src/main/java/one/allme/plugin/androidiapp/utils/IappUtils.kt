@@ -12,6 +12,22 @@ import org.godotengine.godot.Dictionary
  */
 object IappUtils {
 
+    /**
+     * Converts a list of [Purchase] objects to a Godot Dictionary.
+     * @param purchasesList The list of purchases to convert.
+     * @return A Dictionary containing the list of purchases, or an error message if the list is null.
+     */
+    fun convertPurchasesListToDictionary(purchasesList: List<Purchase>?): Dictionary {
+        return Dictionary().apply {
+            if (purchasesList == null) {
+                put("error", "Purchase list is null")
+                put("purchases_list", emptyArray<Any>())
+            } else {
+                put("purchases_list", convertPurchasesListToArray(purchasesList))
+            }
+        }
+    }
+
     fun convertPurchasesListToArray(purchasesList: List<Purchase>?): Array<Any> {
         return purchasesList?.map { convertPurchaseToDictionary(it) }?.toTypedArray() ?: emptyArray()
     }
@@ -24,16 +40,16 @@ object IappUtils {
             accountIdentifiers["obfuscated_profile_id"] = ai?.obfuscatedProfileId ?: ""
             put("account_identifiers", accountIdentifiers)
 
-            put("developer_payload", purchase.developerPayload)
+            put("developer_payload", purchase.developerPayload ?: "")
             put("order_id", purchase.orderId ?: "")
-            put("original_json", purchase.originalJson)
-            put("package_name", purchase.packageName)
-            put("products", purchase.products.toTypedArray())
+            put("original_json", purchase.originalJson ?: "")
+            put("package_name", purchase.packageName ?: "")
+            put("products", purchase.products?.toTypedArray() ?: emptyArray<String>())
             put("purchase_state", purchase.purchaseState)
             put("purchase_time", purchase.purchaseTime)
-            put("purchase_token", purchase.purchaseToken)
+            put("purchase_token", purchase.purchaseToken ?: "")
             put("quantity", purchase.quantity)
-            put("signature", purchase.signature)
+            put("signature", purchase.signature ?: "")
             put("is_acknowledged", purchase.isAcknowledged)
             put("is_auto_renewing", purchase.isAutoRenewing)
             put("is_suspended", purchase.isSuspended)
@@ -60,11 +76,11 @@ object IappUtils {
 
     private fun convertProductDetailsToDictionary(productsDetails: ProductDetails): Dictionary {
         return Dictionary().apply {
-            put("description", productsDetails.description)
-            put("name", productsDetails.name)
-            put("product_id", productsDetails.productId)
-            put("product_type", productsDetails.productType)
-            put("title", productsDetails.title)
+            put("description", productsDetails.description ?: "")
+            put("name", productsDetails.name ?: "")
+            put("product_id", productsDetails.productId ?: "")
+            put("product_type", productsDetails.productType ?: "")
+            put("title", productsDetails.title ?: "")
             put("hash_code", productsDetails.hashCode())
             put("to_string", productsDetails.toString())
             
@@ -87,7 +103,7 @@ object IappUtils {
 
     private fun convertUnfetchedProductToDictionary(unfetchedProduct: UnfetchedProduct): Dictionary {
         return Dictionary().apply {
-            put("product_id", unfetchedProduct.productId)
+            put("product_id", unfetchedProduct.productId ?: "")
             put("status_code", unfetchedProduct.statusCode)
         }
     }
@@ -115,12 +131,12 @@ object IappUtils {
 
     private fun convertSubscriptionDetailsToDictionary(offerDetails: ProductDetails.SubscriptionOfferDetails): Dictionary {
         return Dictionary().apply {
-            put("base_plan_id", offerDetails.basePlanId)
+            put("base_plan_id", offerDetails.basePlanId ?: "")
             put("installment_plan_details", convertInstallmentPlanDetailsToDictionary(offerDetails.installmentPlanDetails))
             put("offer_id", offerDetails.offerId ?: "")
-            put("offer_tags", offerDetails.offerTags.toTypedArray())
-            put("offer_token", offerDetails.offerToken)
-            put("pricing_phases", convertPricingPhasesListToArray(offerDetails.pricingPhases.pricingPhaseList))
+            put("offer_tags", offerDetails.offerTags?.toTypedArray() ?: emptyArray<String>())
+            put("offer_token", offerDetails.offerToken ?: "")
+            put("pricing_phases", convertPricingPhasesListToArray(offerDetails.pricingPhases?.pricingPhaseList))
         }
     }
 
@@ -132,10 +148,10 @@ object IappUtils {
     private fun convertPricingPhaseToDictionary(phase: ProductDetails.PricingPhase): Dictionary {
         return Dictionary().apply {
             put("billing_cycle_count", phase.billingCycleCount)
-            put("billing_period", phase.billingPeriod)
-            put("formatted_price", phase.formattedPrice)
+            put("billing_period", phase.billingPeriod ?: "")
+            put("formatted_price", phase.formattedPrice ?: "")
             put("price_amount_micros", phase.priceAmountMicros)
-            put("price_currency_code", phase.priceCurrencyCode)
+            put("price_currency_code", phase.priceCurrencyCode ?: "")
             put("recurrence_mode", phase.recurrenceMode)
         }
     }
