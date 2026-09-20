@@ -2,9 +2,6 @@
 class_name GooglePlayBilling
 extends Node
 
-# Иконка плагина (пока нет)
-# @icon("icon_billing.svg")
-
 ## Универсальный мост для Google Play Billing Library 9.1.0.
 ## Обеспечивает транспорт данных между Android-плагином и BillingHandler.
 ## Транслирует ВСЕ сигналы плагина и предоставляет доступ ко всем его методам.
@@ -61,7 +58,16 @@ enum ConnectionState {
 	CLOSED = 3
 }
 
-# --- Сигналы ---
+# --- Сигналы (Прямые сигналы плагина AndroidIAPP) ---
+
+## Ответ на sayHello
+signal helloResponse(message: String)
+
+## Попытка подключения начата (startConnection)
+signal startConnection
+
+## Попытка подключения начата (start_connection)
+signal start_connection
 
 ## Плагин подключён к Google Play Billing
 signal connected
@@ -69,41 +75,62 @@ signal connected
 ## Плагин отключён от Google Play Billing
 signal disconnected
 
-## Зафиксирована ошибка. fun_name — метод, response — словарь с кодом и сообщением
-signal error_occurred(fun_name: String, response: Dictionary)
+## Результат запроса покупок
+signal query_purchases(response: Dictionary)
 
-## Технический инфо-сигнал от плагина (диагностика, статусы операций)
-signal billing_info_received(info: Dictionary)
+## Ошибка при запросе покупок
+signal query_purchases_error(response: Dictionary)
 
-## Ответ на sayHello (используется для проверки соединения)
-signal hello_response(message: String)
+## Результат запроса деталей продуктов
+signal query_product_details(response: Dictionary)
 
-## Возвращает Array[Dictionary] (ProductDetails) и Array[Dictionary] (UnfetchedProduct)
-signal product_details_received(products: Array, unfetched: Array, type: String)
+## Ошибка при запросе деталей продуктов
+signal query_product_details_error(response: Dictionary)
 
-## Активные покупки пользователя (ответ на query_purchases)
-signal purchases_queried(purchases: Array)
+## Сигнал покупки
+signal purchase(response: Dictionary)
 
-## Покупки обновлены (новая покупка завершена успешно)
-signal purchases_updated(purchases: Array)
+## Ошибка при запуске покупки
+signal purchase_error(response: Dictionary)
+
+## Покупки обновлены
+signal purchase_updated(response: Dictionary)
 
 ## Пользователь отменил покупку
-signal purchase_cancelled
+signal purchase_cancelled(response: Dictionary)
 
-## Расходник успешно погашен (consume)
-signal consumed_success(token: String)
+## Ошибка при обновлении покупки
+signal purchase_update_error(response: Dictionary)
 
-## Постоянная покупка успешно подтверждена (acknowledge)
-signal acknowledged_success(token: String)
+## Результат погашения расходника (consume)
+signal purchase_consumed(response: Dictionary)
 
-## Результат показа In-App сообщения Google Play
+## Ошибка при погашении расходника
+signal purchase_consumed_error(response: Dictionary)
+
+## Результат подтверждения покупки (acknowledge)
+signal purchase_acknowledged(response: Dictionary)
+
+## Ошибка при подтверждении покупки
+signal purchase_acknowledged_error(response: Dictionary)
+
+## Техническая информация биллинга
+signal billing_info(response: Dictionary)
+
+## Результат подтверждения изменения цены
+signal price_change_acknowledged(response: Dictionary)
+
+## Ошибка при изменении цены
+signal price_change_error(response: Dictionary)
+
+## Результат показа In-App сообщения
 signal in_app_message_result(result: Dictionary)
 
-## Результат подтверждения изменения цены подписки
-signal price_change_acknowledged(result: Dictionary)
+## Результат транзакции Alternative Billing Only
+signal alternative_billing_only_transaction_reported(response: Dictionary)
 
-## Конфигурация биллинга получена (страна и т.д.)
-signal billing_config_received(config: Dictionary)
+## Конфигурация биллинга получена
+signal billing_config_response(response: Dictionary)
 
 ## Результат проверки доступности Alternative Billing Only
 signal alternative_billing_only_availability_response(response: Dictionary)
@@ -139,6 +166,36 @@ signal billing_choice_info_response(response: Dictionary)
 signal launch_external_link_response(response: Dictionary)
 
 
+# --- Высокоуровневые удобные сигналы ---
+
+## Зафиксирована ошибка. fun_name — метод, response — словарь с кодом и сообщением
+signal error_occurred(fun_name: String, response: Dictionary)
+
+## Технический инфо-сигнал от плагина (диагностика, статусы операций)
+signal billing_info_received(info: Dictionary)
+
+## Ответ на sayHello (используется для проверки соединения)
+signal hello_response(message: String)
+
+## Возвращает Array[Dictionary] (ProductDetails) и Array[Dictionary] (UnfetchedProduct)
+signal product_details_received(products: Array, unfetched: Array, type: String)
+
+## Активные покупки пользователя (ответ на query_purchases)
+signal purchases_queried(purchases: Array)
+
+## Покупки обновлены (новая покупка завершена успешно)
+signal purchases_updated(purchases: Array)
+
+## Расходник успешно погашен (consume)
+signal consumed_success(token: String)
+
+## Постоянная покупка успешно подтверждена (acknowledge)
+signal acknowledged_success(token: String)
+
+## Конфигурация биллинга получена (страна и т.д.)
+signal billing_config_received(config: Dictionary)
+
+
 # --- Приватные переменные ---
 
 var _plugin: Object = null
@@ -165,51 +222,84 @@ func _initialize_plugin() -> void:
 
 # Подключаем все сигналы Kotlin-части к нашим локальным сигналам
 func _connect_signals() -> void:
+	if not _plugin:
+		return
+
 	# Соединение
+	if _plugin.has_signal("startConnection"):
+		_plugin.startConnection.connect(func():
+			startConnection.emit()
+			start_connection.emit()
+		)
 	_plugin.connected.connect(func(): connected.emit())
 	_plugin.disconnected.connect(func(): disconnected.emit())
 
-	# Технические диагностические сигналы
-	_plugin.billing_info.connect(func(info: Dictionary): billing_info_received.emit(info))
-	_plugin.helloResponse.connect(func(msg: String): hello_response.emit(msg))
+	# Диагностика и тестовый сигнал
+	_plugin.billing_info.connect(func(info: Dictionary):
+		billing_info.emit(info)
+		billing_info_received.emit(info)
+	)
+	_plugin.helloResponse.connect(func(msg: String):
+		helloResponse.emit(msg)
+		hello_response.emit(msg)
+	)
 
-	# Продукты
-	_plugin.query_product_details.connect(_on_product_details_received)
+	# Запрос деталей продуктов
+	_plugin.query_product_details.connect(func(res: Dictionary):
+		query_product_details.emit(res)
+		_on_product_details_received(res)
+	)
 	_plugin.query_product_details_error.connect(func(res: Dictionary):
+		query_product_details_error.emit(res)
 		error_occurred.emit("query_product_details", res)
 	)
 
 	# Запрос активных покупок
 	_plugin.query_purchases.connect(func(res: Dictionary):
+		query_purchases.emit(res)
 		purchases_queried.emit(res.get("purchases_list", []))
 	)
 	_plugin.query_purchases_error.connect(func(res: Dictionary):
+		query_purchases_error.emit(res)
 		error_occurred.emit("query_purchases", res)
 	)
 
 	# Покупки
-	_plugin.purchase_updated.connect(func(res: Dictionary):
-		purchases_updated.emit(res.get("purchases_list", []))
-	)
-	_plugin.purchase_cancelled.connect(func(_res: Dictionary): purchase_cancelled.emit())
+	if _plugin.has_signal("purchase"):
+		_plugin.purchase.connect(func(res: Dictionary):
+			purchase.emit(res)
+		)
 	_plugin.purchase_error.connect(func(res: Dictionary):
+		purchase_error.emit(res)
 		error_occurred.emit("purchase", res)
 	)
+	_plugin.purchase_updated.connect(func(res: Dictionary):
+		purchase_updated.emit(res)
+		purchases_updated.emit(res.get("purchases_list", []))
+	)
+	_plugin.purchase_cancelled.connect(func(res: Dictionary):
+		purchase_cancelled.emit(res)
+	)
 	_plugin.purchase_update_error.connect(func(res: Dictionary):
+		purchase_update_error.emit(res)
 		error_occurred.emit("purchase_update", res)
 	)
 
 	# Потребление / Подтверждение
 	_plugin.purchase_consumed.connect(func(res: Dictionary):
+		purchase_consumed.emit(res)
 		consumed_success.emit(res.get("purchase_token", ""))
 	)
 	_plugin.purchase_consumed_error.connect(func(res: Dictionary):
+		purchase_consumed_error.emit(res)
 		error_occurred.emit("consume", res)
 	)
 	_plugin.purchase_acknowledged.connect(func(res: Dictionary):
+		purchase_acknowledged.emit(res)
 		acknowledged_success.emit(res.get("purchase_token", ""))
 	)
 	_plugin.purchase_acknowledged_error.connect(func(res: Dictionary):
+		purchase_acknowledged_error.emit(res)
 		error_occurred.emit("acknowledge", res)
 	)
 
@@ -217,12 +307,16 @@ func _connect_signals() -> void:
 	_plugin.in_app_message_result.connect(func(res: Dictionary): in_app_message_result.emit(res))
 	_plugin.price_change_acknowledged.connect(func(res: Dictionary): price_change_acknowledged.emit(res))
 	_plugin.price_change_error.connect(func(res: Dictionary):
+		price_change_error.emit(res)
 		error_occurred.emit("price_change", res)
 	)
 
 	# Billing Config
 	if _plugin.has_signal("billing_config_response"):
-		_plugin.billing_config_response.connect(func(res: Dictionary): billing_config_received.emit(res))
+		_plugin.billing_config_response.connect(func(res: Dictionary):
+			billing_config_response.emit(res)
+			billing_config_received.emit(res)
+		)
 
 	# Alternative Billing Only
 	if _plugin.has_signal("alternative_billing_only_availability_response"):
@@ -231,6 +325,8 @@ func _connect_signals() -> void:
 		_plugin.alternative_billing_only_reporting_details_response.connect(func(res: Dictionary): alternative_billing_only_reporting_details_response.emit(res))
 	if _plugin.has_signal("alternative_billing_only_information_dialog_response"):
 		_plugin.alternative_billing_only_information_dialog_response.connect(func(res: Dictionary): alternative_billing_only_information_dialog_response.emit(res))
+	if _plugin.has_signal("alternative_billing_only_transaction_reported"):
+		_plugin.alternative_billing_only_transaction_reported.connect(func(res: Dictionary): alternative_billing_only_transaction_reported.emit(res))
 
 	# External Offer
 	if _plugin.has_signal("external_offer_availability_response"):
@@ -275,12 +371,20 @@ func is_feature_supported(feature: String) -> Dictionary:
 	return _plugin.isFeatureSupported(feature)
 
 
-## Тестовый запрос к плагину. Ответ придёт в сигнал hello_response
+## Тестовый запрос к плагину. Ответ придёт в сигнал hello_response / helloResponse
 func say_hello(message: String = "Hello from GDScript") -> void:
 	if not _plugin:
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
 		return
 	_plugin.sayHello(message)
+
+
+## Ручной запуск подключения к Google Play Billing
+func start_connection() -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.startConnection()
 
 
 ## Принудительное завершение соединения с Google Play Billing
@@ -300,7 +404,7 @@ func get_billing_config() -> void:
 
 
 ## Запрос деталей продуктов (цены, офферы, теги).
-## Результат приходит в product_details_received
+## Результат приходит в product_details_received и query_product_details
 func query_details(product_ids: Array[String], type: String = TYPE_INAPP) -> void:
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, query_details пропущен.")
@@ -308,8 +412,13 @@ func query_details(product_ids: Array[String], type: String = TYPE_INAPP) -> voi
 	_plugin.queryProductDetails(product_ids, type)
 
 
+## Прямой метод запроса деталей продуктов (соответствует Kotlin queryProductDetails)
+func query_product_details(product_ids: Array[String], type: String = TYPE_INAPP) -> void:
+	query_details(product_ids, type)
+
+
 ## Запрос текущих активных покупок пользователя.
-## Результат приходит в purchases_queried. Вызывай при старте приложения!
+## Результат приходит в purchases_queried и query_purchases. Вызывай при старте приложения!
 ## include_suspended — включать ли приостановленные подписки
 func query_purchases(type: String = TYPE_INAPP, include_suspended: bool = false) -> void:
 	if not is_ready():
@@ -325,6 +434,14 @@ func buy_inapp(id: String, offer_token: String = "", is_personalized: bool = fal
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, buy_inapp пропущен.")
 		return
 	_plugin.purchase([id], is_personalized, offer_token)
+
+
+## Прямой метод запуска покупки (соответствует Kotlin purchase)
+func purchase(product_ids: Array[String], is_personalized: bool = false, offer_token: String = "") -> void:
+	if not is_ready():
+		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, purchase пропущен.")
+		return
+	_plugin.purchase(product_ids, is_personalized, offer_token)
 
 
 ## Покупка подписки. base_plan_id обязателен, offer_id — опционален
@@ -358,12 +475,22 @@ func consume(token: String) -> void:
 	_plugin.consumePurchase(token)
 
 
+## Прямой метод потребления покупки (соответствует Kotlin consumePurchase)
+func consume_purchase(token: String) -> void:
+	consume(token)
+
+
 ## Подтверждение (acknowledge) для постоянных покупок. Обязательно в течение 3 дней!
 func acknowledge(token: String) -> void:
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, acknowledge пропущен.")
 		return
 	_plugin.acknowledgePurchase(token)
+
+
+## Прямой метод подтверждения покупки (соответствует Kotlin acknowledgePurchase)
+func acknowledge_purchase(token: String) -> void:
+	acknowledge(token)
 
 
 ## Показать системные In-App сообщения Google Play (например, истёкшая карта)
@@ -404,6 +531,14 @@ func show_alternative_billing_only_information_dialog() -> void:
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
 		return
 	_plugin.showAlternativeBillingOnlyInformationDialog()
+
+
+## Отправить отчет о транзакции Alternative Billing Only (устарело в Billing Library 7+)
+func report_alternative_billing_only_transaction(reporting_details: Dictionary) -> void:
+	if not _plugin:
+		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
+		return
+	_plugin.reportAlternativeBillingOnlyTransaction(reporting_details)
 
 
 ## Проверить доступность External Offer
