@@ -20,7 +20,7 @@ echo 'export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"' >> ~/.bash
 echo 'export PATH="$PATH:$ANDROID_SDK_ROOT/platform-tools"' >> ~/.bashrc
 
 # Устанавливаем необходимые компоненты SDK
-sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.1"
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 yes | sdkmanager --licenses  # Автоматически принимаем лицензии
 
 # Для Godot Android plugin: Убедитесь, что в проекте есть gradlew (если билд на Gradle)

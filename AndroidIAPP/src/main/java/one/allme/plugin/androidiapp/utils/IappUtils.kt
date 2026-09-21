@@ -7,6 +7,9 @@ import com.android.billingclient.api.QueryProductDetailsResult
 import com.android.billingclient.api.UnfetchedProduct
 import org.godotengine.godot.Dictionary
 
+@Deprecated("Use IappUtils instead", ReplaceWith("IappUtils"))
+typealias IAPP_utils = IappUtils
+
 /**
  * Utility object for converting Google Play Billing objects to Godot Dictionaries.
  */
