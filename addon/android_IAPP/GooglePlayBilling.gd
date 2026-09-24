@@ -66,8 +66,8 @@ signal helloResponse(message: String)
 ## Попытка подключения начата (startConnection)
 signal startConnection
 
-## Попытка подключения начата (start_connection)
-signal start_connection
+## Попытка подключения начата
+signal connection_starting
 
 ## Плагин подключён к Google Play Billing
 signal connected
@@ -76,19 +76,19 @@ signal connected
 signal disconnected
 
 ## Результат запроса покупок
-signal query_purchases(response: Dictionary)
+signal query_purchases_response(response: Dictionary)
 
 ## Ошибка при запросе покупок
 signal query_purchases_error(response: Dictionary)
 
 ## Результат запроса деталей продуктов
-signal query_product_details(response: Dictionary)
+signal query_product_details_response(response: Dictionary)
 
 ## Ошибка при запросе деталей продуктов
 signal query_product_details_error(response: Dictionary)
 
 ## Сигнал покупки
-signal purchase(response: Dictionary)
+signal purchase_started(response: Dictionary)
 
 ## Ошибка при запуске покупки
 signal purchase_error(response: Dictionary)
@@ -237,7 +237,7 @@ func _connect_signals() -> void:
 	if _plugin.has_signal("startConnection"):
 		_plugin.startConnection.connect(func():
 			startConnection.emit()
-			start_connection.emit()
+			connection_starting.emit()
 		)
 	_plugin.connected.connect(func(): connected.emit())
 	_plugin.disconnected.connect(func(): disconnected.emit())
@@ -254,7 +254,7 @@ func _connect_signals() -> void:
 
 	# Запрос деталей продуктов
 	_plugin.query_product_details.connect(func(res: Dictionary):
-		query_product_details.emit(res)
+		query_product_details_response.emit(res)
 		_on_product_details_received(res)
 	)
 	_plugin.query_product_details_error.connect(func(res: Dictionary):
@@ -264,7 +264,7 @@ func _connect_signals() -> void:
 
 	# Запрос активных покупок
 	_plugin.query_purchases.connect(func(res: Dictionary):
-		query_purchases.emit(res)
+		query_purchases_response.emit(res)
 		purchases_queried.emit(res.get("purchases_list", []))
 	)
 	_plugin.query_purchases_error.connect(func(res: Dictionary):
@@ -275,7 +275,7 @@ func _connect_signals() -> void:
 	# Покупки
 	if _plugin.has_signal("purchase"):
 		_plugin.purchase.connect(func(res: Dictionary):
-			purchase.emit(res)
+			purchase_started.emit(res)
 		)
 	_plugin.purchase_error.connect(func(res: Dictionary):
 		purchase_error.emit(res)
