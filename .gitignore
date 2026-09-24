@@ -16,6 +16,7 @@ captures/
 
 # Output artifacts
 *.aar
+!addon/android_IAPP/*.aar
 *.jar
 *.apk
 
