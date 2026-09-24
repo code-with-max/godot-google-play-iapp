@@ -12,6 +12,14 @@
 2. Enable the plugin in the editor: `Project -> Project Settings -> Plugins`.
 3. Add `GooglePlayBilling.gd` as a node in your scene, or register it as an autoload named `Billing`.
 
+### ⚙️ Android Export Settings (Crucial)
+
+To prevent Google Play Console errors such as *"Your app currently uses Play Billing Library version AIDL and must update to at least version 8.0.0..."*, configure your Android Export Preset (`Project -> Export -> Android`) as follows:
+
+1. **Use Custom Build**: Under `Options`, check **Use Custom Build** (Gradle build). This allows Gradle to download and bundle `com.android.billingclient:billing-ktx` into your build.
+2. **Disable Built-in Billing**: Under `Plugins`, **UNCHECK** Godot's legacy built-in **Google Play Billing** plugin, as it contains legacy AIDL billing code.
+3. **Permissions**: Under `Permissions`, ensure **Billing** is checked.
+
 ### 2. Basic purchase example
 
 Attach a script to your UI or main scene node and connect the core signals:
@@ -193,7 +201,6 @@ This helps diagnose connection issues, billing errors, and failed purchases.
 ## Compatibility
 
 - Godot 4.3+
-- Android export enabled
+- Android export enabled with **Use Custom Build**
 - Google Play Billing permission enabled in the Android export settings
-
-Make sure the `Billing` permission is checked in your Android export presets before testing purchases.
+- Godot's built-in Google Play Billing plugin disabled

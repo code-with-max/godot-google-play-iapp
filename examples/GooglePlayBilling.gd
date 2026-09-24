@@ -204,11 +204,19 @@ var _plugin: Object = null
 # --- Инициализация ---
 
 func _ready() -> void:
-	pass
+	if Engine.has_singleton(PLUGIN_NAME):
+		_initialize_plugin()
+
+
+## Публичный метод инициализации плагина
+func initialize_plugin() -> void:
+	_initialize_plugin()
 
 
 # Ищем JNI-синглтон и запускаем соединение с Google Play
 func _initialize_plugin() -> void:
+	if _plugin != null:
+		return
 	if not Engine.has_singleton(PLUGIN_NAME):
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин '%s' не найден в системе!" % PLUGIN_NAME)
 		return
@@ -381,10 +389,10 @@ func say_hello(message: String = "Hello from GDScript") -> void:
 
 ## Ручной запуск подключения к Google Play Billing
 func start_connection() -> void:
-	if not _plugin:
-		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
-		return
-	_plugin.startConnection()
+	if _plugin == null:
+		_initialize_plugin()
+	else:
+		_plugin.startConnection()
 
 
 ## Принудительное завершение соединения с Google Play Billing
