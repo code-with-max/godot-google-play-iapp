@@ -1,18 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="com.android.vending.BILLING" />
+
     <application>
-        <!--
-       Plugin metadata:
+        <!-- Явно передаем версию библиотеки для валидатора Google Play Console -->
+        <meta-data
+            android:name="com.google.android.play.billingclient.version"
+            android:value="9.1.0" />
 
-       - In the `android:name` attribute, the `org.godotengine.plugin.v2` prefix
-       is required so Godot can recognize the project as a valid Godot
-       Android plugin. The plugin name following the prefix should match the value
-       of the plugin name returned by the plugin initializer.
-
-       - The `android:value` attribute should be the classpath to the plugin
-       initializer.
-       -->
         <meta-data
             android:name="org.godotengine.plugin.v2.AndroidIAPP"
             android:value="one.allme.plugin.androidiapp.AndroidIAPP" />
