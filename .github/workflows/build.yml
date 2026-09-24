@@ -28,10 +28,18 @@ jobs:
       - name: Build AARs
         run: ./gradlew assemble
 
-      - name: Upload AAR Artifacts
+      - name: Package AndroidIAPP plugin
+        run: |
+          mkdir -p android_IAPP
+          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-release.aar android_IAPP/
+          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-debug.aar android_IAPP/
+          cp addon/android_IAPP/AndroidIAPP.gd android_IAPP/
+          cp addon/android_IAPP/GooglePlayBilling.gd android_IAPP/
+          cp addon/android_IAPP/plugin.cfg android_IAPP/
+          zip -r android_IAPP.zip android_IAPP
+
+      - name: Upload AndroidIAPP plugin
         uses: actions/upload-artifact@v7
         with:
-          name: androidiapp-aars
-          path: |
-            AndroidIAPP/build/outputs/aar/AndroidIAPP-release.aar
-            AndroidIAPP/build/outputs/aar/AndroidIAPP-debug.aar
+          name: android_IAPP
+          path: android_IAPP.zip
