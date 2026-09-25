@@ -1,105 +1,129 @@
-# AndroidIAPP Godot Plugin
+# AndroidIAPP for Godot
 
-**AndroidIAPP** is a Godot plugin for Android that makes working with the Google Play Billing Library as simple as possible. It supports one-time purchases, subscriptions with different plans, and offers (discounts or deals) for products.
+AndroidIAPP connects your Godot Android game to Google Play Billing. Use it for one-time in-app products, subscriptions, and subscription offers.
 
----
+If you'd rather learn from a working example, take a look at the [iapp_demo app](https://github.com/code-with-max/iapp_demo).
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Installation and setup
+### 1. Install the plugin
 
-1. Copy the `android_IAPP` folder into `res://addons/`.
-2. Enable the plugin in the editor: `Project -> Project Settings -> Plugins`.
-3. Add `GooglePlayBilling.gd` as a node in your scene, or register it as an autoload named `Billing`.
+1. Copy `addon/android_IAPP` into your project's `res://addons/` folder.
+2. Enable **AndroidIAPP** under **Project > Project Settings > Plugins**.
+3. Add a `GooglePlayBilling` node to your scene. The examples below assume it is named `GooglePlayBilling` and is a child of the node running your script.
 
-### ⚙️ Android Export Settings (Crucial)
+### 2. Configure Android export
 
-To prevent Google Play Console errors such as *"Your app currently uses Play Billing Library version AIDL and must update to at least version 8.0.0..."*, configure your Android Export Preset (`Project -> Export -> Android`) as follows:
+In **Project > Export > Android**:
 
-1. **Use Custom Build**: Under `Options`, check **Use Custom Build** (Gradle build). This allows Gradle to download and bundle `com.android.billingclient:billing-ktx` into your build.
-2. **Disable Built-in Billing**: Under `Plugins`, **UNCHECK** Godot's legacy built-in **Google Play Billing** plugin, as it contains legacy AIDL billing code.
-3. **Permissions**: Under `Permissions`, ensure **Billing** is checked.
+1. Enable **Use Custom Build** so Gradle can include the Billing Library.
+2. Enable the **Billing** permission.
+3. Disable Godot's built-in **Google Play Billing** plugin to avoid bundling the legacy billing implementation.
 
-### 2. Basic purchase example
+### 3. Connect and query products
 
-Attach a script to your UI or main scene node and connect the core signals:
+Replace the product IDs with IDs configured in your Google Play Console. `GooglePlayBilling` starts connecting when it enters the scene tree, so connect to its signals and wait for `iap_connected` before making billing requests.
 
 ```gdscript
 extends Node
 
 @onready var billing: GooglePlayBilling = $GooglePlayBilling
 
+const COINS_ID: String = "coins_100"
+const PREMIUM_ID: String = "premium_unlock"
+
 
 func _ready() -> void:
-    # Connect core signals
-    billing.connected.connect(_on_billing_connected)
-    billing.purchase_updated.connect(_on_purchase_updated)
-    billing.error_occurred.connect(_on_error_occurred)
-
-    # Initialize plugin connection
-    billing.start_connection()
+    billing.iap_connected.connect(_on_billing_connected)
+    billing.iap_product_details_received.connect(_on_product_details_received)
+    billing.iap_purchases_updated.connect(_on_purchases_updated)
+    billing.iap_purchases_queried.connect(_on_purchases_queried)
+    billing.iap_error_occurred.connect(_on_billing_error)
 
 
 func _on_billing_connected() -> void:
-    print("Connected to Google Play Billing!")
-    # Fetch product details before purchasing (optional but recommended)
-    billing.query_details(["coins_100", "remove_ads"], GooglePlayBilling.TYPE_INAPP)
+    billing.query_details([COINS_ID, PREMIUM_ID], GooglePlayBilling.TYPE_INAPP)
+    # Query owned items on startup to restore non-consumables and find pending purchases.
+    billing.query_purchases(GooglePlayBilling.TYPE_INAPP)
 
 
-# Called when the player clicks the "Buy Coins" button
+func _on_product_details_received(
+    products: Array[Dictionary],
+    unfetched: Array[Dictionary],
+    type: String
+) -> void:
+    for product: Dictionary in products:
+        print("Product: ", product.get("product_id"), " ", product)
+    for product: Dictionary in unfetched:
+        push_warning("Could not fetch product: %s" % product)
+
+
 func buy_coins() -> void:
-    billing.buy_inapp("coins_100")
+    billing.buy_inapp(COINS_ID)
 
 
-func _on_purchase_updated(purchases: Array) -> void:
-    for purchase in purchases:
-        if purchase.get("purchase_state", 0) == GooglePlayBilling.PurchaseState.PURCHASED:
-            var token: String = purchase.get("purchase_token", "")
-            var products: Array = purchase.get("products", [])
-
-            # Consumable item: coins
-            if "coins_100" in products:
-                _grant_coins_to_player()
-                billing.consume(token)  # must consume to allow buying again
-
-            # Non-consumable item: remove ads
-            elif "remove_ads" in products:
-                if not purchase.get("is_acknowledged", false):
-                    _disable_ads_for_player()
-                    billing.acknowledge(token)  # must acknowledge within 3 days
+func buy_premium() -> void:
+    billing.buy_inapp(PREMIUM_ID)
 
 
-func _on_error_occurred(fun_name: String, response: Dictionary) -> void:
+func _on_purchases_updated(purchases: Array[Dictionary]) -> void:
+    _process_purchases(purchases)
+
+
+func _on_purchases_queried(purchases: Array[Dictionary]) -> void:
+    _process_purchases(purchases)
+
+
+func _process_purchases(purchases: Array[Dictionary]) -> void:
+    for purchase: Dictionary in purchases:
+        if int(purchase.get("purchase_state", 0)) != GooglePlayBilling.PurchaseState.PURCHASED:
+            continue
+
+        var token: String = str(purchase.get("purchase_token", ""))
+        var products: Array = purchase.get("products", [])
+        if token.is_empty() or products.is_empty():
+            continue
+
+        var product_id: String = str(products[0])
+        if product_id == COINS_ID:
+            _grant_coins_once(token)
+            billing.consume(token)
+        elif product_id == PREMIUM_ID:
+            _enable_premium_once()
+            if not purchase.get("is_acknowledged", false):
+                billing.acknowledge(token)
+
+
+func _on_billing_error(fun_name: String, response: Dictionary) -> void:
     push_error("Billing error in %s: %s" % [fun_name, response])
 
 
-func _grant_coins_to_player() -> void:
-    print("Granted 100 coins!")
+func _grant_coins_once(purchase_token: String) -> void:
+    # TODO: Grant and persist this purchase idempotently before consuming it.
+    pass
 
 
-func _disable_ads_for_player() -> void:
-    print("Ads removed!")
+func _enable_premium_once() -> void:
+    # TODO: Persist the entitlement so it can be restored on future launches.
+    pass
 ```
 
----
+The example handles both purchase updates and the ownership query. Make entitlement grants idempotent: Google Play can report a purchase more than once. Persist a consumable grant before calling `consume()`, and persist non-consumable or subscription ownership so it can be restored. For production games, verify purchases with your backend where possible.
 
-## 💰 Subscriptions and offers
+## Subscriptions
 
-### Purchasing a subscription
-
-To start a subscription purchase, specify the product ID and the base plan ID as defined in the Google Play Console:
+Use the product ID and base plan ID from the Play Console. An offer ID is optional:
 
 ```gdscript
-billing.subscribe("premium_subscription", "monthly-plan")
+billing.buy_subs("premium_subscription", "monthly-plan")
+billing.buy_subs("premium_subscription", "monthly-plan", "introductory-offer")
 ```
 
-### Updating a subscription
-
-To upgrade or downgrade an active subscription:
+To replace an existing subscription, provide its purchase token and product ID:
 
 ```gdscript
-billing.update_subscription(
-    "premium_subscription_v2",
+billing.update_subs(
+    "premium_subscription",
     "yearly-plan",
     old_purchase_token,
     "premium_subscription",
@@ -107,100 +131,41 @@ billing.update_subscription(
 )
 ```
 
-### Purchase with an offer token
-
-If the product has a configured offer or discount in Google Play, pass the offer token when buying:
+For an in-app product with an offer token, pass the token as the second argument:
 
 ```gdscript
-billing.buy_inapp("coins_100", "your_offer_token_here")
+billing.buy_inapp("coins_100", "offer_token_from_product_details")
 ```
 
----
+## Useful IAP Signals
 
-## 📡 Signal reference and advanced usage
+Connect these high-level `iap_*` signals for typical purchase flows:
 
-`GooglePlayBilling.gd` acts as a bridge between Godot and the Android Billing plugin. It exposes both high-level convenience signals and raw plugin signals.
+| Signal | What it reports |
+| --- | --- |
+| `iap_connection_starting` | Billing connection attempt started. |
+| `iap_connected` / `iap_disconnected` | Connection status changed. |
+| `iap_product_details_received(products, unfetched, type)` | Product details query completed. |
+| `iap_purchases_queried(purchases)` | Owned purchases returned by `query_purchases()`. |
+| `iap_purchases_updated(purchases)` | Purchase flow updated purchase data. Check `purchase_state` before granting anything. |
+| `iap_consumed_success(token)` | Consumable purchase was consumed. |
+| `iap_acknowledged_success(token)` | Purchase was acknowledged. |
+| `iap_error_occurred(fun_name, response)` | Unified operation error, including the operation name and response dictionary. |
+| `iap_billing_config_received(config)` | Billing configuration response, such as the user's country. |
 
-### High-level convenience signals
+Purchase dictionaries include fields such as `purchase_token`, `products`, `purchase_state`, and `is_acknowledged`. Check the raw response for the exact fields available to your flow. A `PENDING` purchase is not paid for yet: do not grant its entitlement until it becomes `PURCHASED`.
 
-Use these signals for normal game logic:
+The wrapper also forwards the Android plugin's lower-level signals, such as `purchase_updated(response)`, `query_product_details(response)`, and their corresponding error signals. These expose raw response dictionaries; see `GooglePlayBilling.gd` for the full signal list and method API.
 
-- `connected` — emitted when the connection to Google Play Billing is established.
-- `disconnected` — emitted when the connection is lost.
-- `product_details_received(products: Array, unfetched: Array, type: String)` — emitted when `query_details()` returns product information or missing items.
-- `purchases_updated(purchases: Array)` — emitted after a purchase flow completes or when purchase data changes.
-- `purchases_queried(purchases: Array)` — emitted in response to `query_purchases()` with the player's active ownership data.
-- `consumed_success(token: String)` — emitted after a consumable item is successfully consumed.
-- `acknowledged_success(token: String)` — emitted after a non-consumable or subscription item is acknowledged.
-- `error_occurred(fun_name: String, response: Dictionary)` — unified error handler for failed operations.
-- `billing_config_received(config: Dictionary)` — emitted when `get_billing_config()` returns system information such as the country code.
+## Troubleshooting
 
-### Raw plugin signals
-
-These are direct signals that forward raw dictionaries from the Android Kotlin plugin:
-
-- Connection: `startConnection`, `start_connection`
-- Product details: `query_product_details(response)`, `query_product_details_error(response)`
-- Purchases: `purchase(response)`, `purchase_error(response)`, `purchase_cancelled(response)`, `purchase_update_error(response)`
-- Consumables and acknowledgement: `purchase_consumed(response)`, `purchase_consumed_error(response)`, `purchase_acknowledged(response)`, `purchase_acknowledged_error(response)`
-- Diagnostics: `billing_info(response)`, `helloResponse(message)`
-
-### Alternative billing and external offers signals
-
-Signals related to Play Store regulatory and alternative billing features:
-
-- `alternative_billing_only_availability_response(response)`
-- `alternative_billing_only_reporting_details_response(response)`
-- `alternative_billing_only_information_dialog_response(response)`
-- `external_offer_availability_response(response)`
-- `external_offer_reporting_details_response(response)`
-- `external_offer_information_dialog_response(response)`
-- `billing_program_availability_response(response)`
-- `billing_program_reporting_details_response(response)`
-- `billing_program_information_dialog_response(response)`
-- `billing_choice_info_response(response)`
-- `launch_external_link_response(response)`
-
----
-
-## ✅ Purchase confirmation rules
-
-Google requires purchases to be confirmed after the transaction completes. Otherwise, the money may be refunded after a few days.
-
-1. Consumables such as coins or lives must be consumed with `consume()`.
-2. Non-consumables such as ad removal must be acknowledged with `acknowledge()`.
-3. Subscriptions may also require acknowledgment depending on the billing flow and product configuration.
-
-Example:
-
-```gdscript
-func _on_purchase_updated(purchases: Array) -> void:
-    for purchase in purchases:
-        if purchase.get("purchase_state", 0) == GooglePlayBilling.PurchaseState.PURCHASED:
-            if "coins_100" in purchase.get("products", []):
-                billing.consume(purchase.get("purchase_token", ""))
-            elif "remove_ads" in purchase.get("products", []):
-                if not purchase.get("is_acknowledged", false):
-                    billing.acknowledge(purchase.get("purchase_token", ""))
-```
-
----
-
-## 🔍 Debugging
-
-To inspect live plugin logs on an Android device, run:
-
-```bash
-adb logcat | grep IAPP
-```
-
-This helps diagnose connection issues, billing errors, and failed purchases.
-
----
+- Test billing with a build installed through a Google Play testing track and a tester account. Billing may not work as expected when launched directly from the editor.
+- Confirm the product IDs and subscription base plans match the Play Console exactly.
+- Inspect Android logs with `adb logcat | grep AndroidIAPP`.
 
 ## Compatibility
 
-- Godot 4.3+
-- Android export enabled with **Use Custom Build**
-- Google Play Billing permission enabled in the Android export settings
+- Godot 4.3 or newer
+- Android export with **Use Custom Build** enabled
+- Billing permission enabled in the Android export preset
 - Godot's built-in Google Play Billing plugin disabled

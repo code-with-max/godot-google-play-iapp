@@ -7,9 +7,5 @@ Since GitHub Actions and Google Jules environments are recreated from scratch wi
 
 ---
 
-### 🚀 1. Выполните скрипт `setup.sh`
-
-Before building, run the command:
-
-```bash
-bash setup.sh
+Перед сборкой убедитесь, что Android SDK установлен и доступен через
+`ANDROID_SDK_ROOT` или `local.properties`.
