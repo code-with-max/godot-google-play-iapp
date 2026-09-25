@@ -166,34 +166,43 @@ signal billing_choice_info_response(response: Dictionary)
 signal launch_external_link_response(response: Dictionary)
 
 
-# --- Высокоуровневые удобные сигналы ---
+# --- Высокоуровневые удобные сигналы (IAP) ---
+
+## Начало попытки подключения к Google Play Billing
+signal iap_connection_starting
+
+## Успешное подключение к Google Play Billing
+signal iap_connected
+
+## Отключение от Google Play Billing
+signal iap_disconnected
 
 ## Зафиксирована ошибка. fun_name — метод, response — словарь с кодом и сообщением
-signal error_occurred(fun_name: String, response: Dictionary)
+signal iap_error_occurred(fun_name: String, response: Dictionary)
 
 ## Технический инфо-сигнал от плагина (диагностика, статусы операций)
-signal billing_info_received(info: Dictionary)
+signal iap_billing_info_received(info: Dictionary)
 
 ## Ответ на sayHello (используется для проверки соединения)
-signal hello_response(message: String)
+signal iap_hello_response(message: String)
 
 ## Возвращает Array[Dictionary] (ProductDetails) и Array[Dictionary] (UnfetchedProduct)
-signal product_details_received(products: Array, unfetched: Array, type: String)
+signal iap_product_details_received(products: Array[Dictionary], unfetched: Array[Dictionary], type: String)
 
 ## Активные покупки пользователя (ответ на query_purchases)
-signal purchases_queried(purchases: Array)
+signal iap_purchases_queried(purchases: Array[Dictionary])
 
 ## Покупки обновлены (новая покупка завершена успешно)
-signal purchases_updated(purchases: Array)
+signal iap_purchases_updated(purchases: Array[Dictionary])
 
 ## Расходник успешно погашен (consume)
-signal consumed_success(token: String)
+signal iap_consumed_success(token: String)
 
 ## Постоянная покупка успешно подтверждена (acknowledge)
-signal acknowledged_success(token: String)
+signal iap_acknowledged_success(token: String)
 
 ## Конфигурация биллинга получена (страна и т.д.)
-signal billing_config_received(config: Dictionary)
+signal iap_billing_config_received(config: Dictionary)
 
 
 # --- Приватные переменные ---
@@ -238,18 +247,25 @@ func _connect_signals() -> void:
 		_plugin.startConnection.connect(func():
 			startConnection.emit()
 			connection_starting.emit()
+			iap_connection_starting.emit()
 		)
-	_plugin.connected.connect(func(): connected.emit())
-	_plugin.disconnected.connect(func(): disconnected.emit())
+	_plugin.connected.connect(func():
+		connected.emit()
+		iap_connected.emit()
+	)
+	_plugin.disconnected.connect(func():
+		disconnected.emit()
+		iap_disconnected.emit()
+	)
 
 	# Диагностика и тестовый сигнал
 	_plugin.billing_info.connect(func(info: Dictionary):
 		billing_info.emit(info)
-		billing_info_received.emit(info)
+		iap_billing_info_received.emit(info)
 	)
 	_plugin.helloResponse.connect(func(msg: String):
 		helloResponse.emit(msg)
-		hello_response.emit(msg)
+		iap_hello_response.emit(msg)
 	)
 
 	# Запрос деталей продуктов
@@ -259,17 +275,19 @@ func _connect_signals() -> void:
 	)
 	_plugin.query_product_details_error.connect(func(res: Dictionary):
 		query_product_details_error.emit(res)
-		error_occurred.emit("query_product_details", res)
+		iap_error_occurred.emit("query_product_details", res)
 	)
 
 	# Запрос активных покупок
 	_plugin.query_purchases.connect(func(res: Dictionary):
 		query_purchases_response.emit(res)
-		purchases_queried.emit(res.get("purchases_list", []))
+		var purchases_list: Array[Dictionary] = []
+		purchases_list.assign(res.get("purchases_list", []))
+		iap_purchases_queried.emit(purchases_list)
 	)
 	_plugin.query_purchases_error.connect(func(res: Dictionary):
 		query_purchases_error.emit(res)
-		error_occurred.emit("query_purchases", res)
+		iap_error_occurred.emit("query_purchases", res)
 	)
 
 	# Покупки
@@ -279,36 +297,38 @@ func _connect_signals() -> void:
 		)
 	_plugin.purchase_error.connect(func(res: Dictionary):
 		purchase_error.emit(res)
-		error_occurred.emit("purchase", res)
+		iap_error_occurred.emit("purchase", res)
 	)
 	_plugin.purchase_updated.connect(func(res: Dictionary):
 		purchase_updated.emit(res)
-		purchases_updated.emit(res.get("purchases_list", []))
+		var purchases_list: Array[Dictionary] = []
+		purchases_list.assign(res.get("purchases_list", []))
+		iap_purchases_updated.emit(purchases_list)
 	)
 	_plugin.purchase_cancelled.connect(func(res: Dictionary):
 		purchase_cancelled.emit(res)
 	)
 	_plugin.purchase_update_error.connect(func(res: Dictionary):
 		purchase_update_error.emit(res)
-		error_occurred.emit("purchase_update", res)
+		iap_error_occurred.emit("purchase_update", res)
 	)
 
 	# Потребление / Подтверждение
 	_plugin.purchase_consumed.connect(func(res: Dictionary):
 		purchase_consumed.emit(res)
-		consumed_success.emit(res.get("purchase_token", ""))
+		iap_consumed_success.emit(res.get("purchase_token", ""))
 	)
 	_plugin.purchase_consumed_error.connect(func(res: Dictionary):
 		purchase_consumed_error.emit(res)
-		error_occurred.emit("consume", res)
+		iap_error_occurred.emit("consume", res)
 	)
 	_plugin.purchase_acknowledged.connect(func(res: Dictionary):
 		purchase_acknowledged.emit(res)
-		acknowledged_success.emit(res.get("purchase_token", ""))
+		iap_acknowledged_success.emit(res.get("purchase_token", ""))
 	)
 	_plugin.purchase_acknowledged_error.connect(func(res: Dictionary):
 		purchase_acknowledged_error.emit(res)
-		error_occurred.emit("acknowledge", res)
+		iap_error_occurred.emit("acknowledge", res)
 	)
 
 	# In-App сообщения и изменение цены
@@ -316,14 +336,14 @@ func _connect_signals() -> void:
 	_plugin.price_change_acknowledged.connect(func(res: Dictionary): price_change_acknowledged.emit(res))
 	_plugin.price_change_error.connect(func(res: Dictionary):
 		price_change_error.emit(res)
-		error_occurred.emit("price_change", res)
+		iap_error_occurred.emit("price_change", res)
 	)
 
 	# Billing Config
 	if _plugin.has_signal("billing_config_response"):
 		_plugin.billing_config_response.connect(func(res: Dictionary):
 			billing_config_response.emit(res)
-			billing_config_received.emit(res)
+			iap_billing_config_received.emit(res)
 		)
 
 	# Alternative Billing Only
@@ -379,7 +399,7 @@ func is_feature_supported(feature: String) -> Dictionary:
 	return _plugin.isFeatureSupported(feature)
 
 
-## Тестовый запрос к плагину. Ответ придёт в сигнал hello_response / helloResponse
+## Тестовый запрос к плагину. Ответ придёт в сигнал iap_hello_response / helloResponse
 func say_hello(message: String = "Hello from GDScript") -> void:
 	if not _plugin:
 		push_error("[GOOGLE_PLAY_BILLING]: Плагин не инициализирован!")
@@ -412,7 +432,7 @@ func get_billing_config() -> void:
 
 
 ## Запрос деталей продуктов (цены, офферы, теги).
-## Результат приходит в product_details_received и query_product_details
+## Результат приходит в iap_product_details_received и query_product_details
 func query_details(product_ids: Array[String], type: String = TYPE_INAPP) -> void:
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, query_details пропущен.")
@@ -426,7 +446,7 @@ func query_product_details(product_ids: Array[String], type: String = TYPE_INAPP
 
 
 ## Запрос текущих активных покупок пользователя.
-## Результат приходит в purchases_queried и query_purchases. Вызывай при старте приложения!
+## Результат приходит в iap_purchases_queried и query_purchases. Вызывай при старте приложения!
 ## include_suspended — включать ли приостановленные подписки
 func query_purchases(type: String = TYPE_INAPP, include_suspended: bool = false) -> void:
 	if not is_ready():
@@ -453,26 +473,43 @@ func purchase(product_ids: Array[String], is_personalized: bool = false, offer_t
 
 
 ## Покупка подписки. base_plan_id обязателен, offer_id — опционален
-func subscribe(id: String, base_plan_id: String, offer_id: String = "", is_personalized: bool = false) -> void:
+func buy_subs(id: String, base_plan_id: String, offer_id: String = "", is_personalized: bool = false) -> void:
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, subscribe пропущен.")
 		return
-	_plugin.subscribe([id], [base_plan_id], [offer_id], is_personalized)
+
+	# Формирование списка предложений (если offer_id пустой, передаем пустой массив)
+	var offer_ids: Array[String] = []
+	if not offer_id.is_empty():
+		offer_ids.append(offer_id)
+
+	# Запуск покупки подписки
+	_plugin.subscribe([id], [base_plan_id], offer_ids, is_personalized)
 
 
 ## Обновление существующей подписки (upgrade / downgrade).
-## old_token — purchase_token старой подписки, old_id — product_id старой подписки
-func update_subscription(
+## old_token — purchase_token старой подписки, old_id — product_id старой подписки.
+## offer_id — опциональный ID предложения/скидки для новой подписки.
+func update_subs(
 	id: String,
 	base_plan_id: String,
 	old_token: String,
 	old_id: String,
-	mode: ReplacementMode = ReplacementMode.WITH_TIME_PRORATION
+	mode: ReplacementMode = ReplacementMode.WITH_TIME_PRORATION,
+	offer_id: String = "",
+	is_personalized: bool = false
 ) -> void:
 	if not is_ready():
 		push_warning("[GOOGLE_PLAY_BILLING]: Плагин не готов, update_subscription пропущен.")
 		return
-	_plugin.updateSubscription([id], [base_plan_id], [], false, old_token, old_id, int(mode))
+
+	# Формирование списка предложений (если offer_id пустой, передаем пустой массив)
+	var offer_ids: Array[String] = []
+	if not offer_id.is_empty():
+		offer_ids.append(offer_id)
+
+	# Запуск обновления подписки
+	_plugin.updateSubscription([id], [base_plan_id], offer_ids, is_personalized, old_token, old_id, int(mode))
 
 
 ## Потребление (consume) для расходников. Открывает возможность повторной покупки
@@ -615,12 +652,19 @@ func launch_external_link(link_uri: String, link_type: int = 0, launch_mode: int
 
 # --- Внутренние обработчики ---
 
+# Обработка полученных деталей продуктов
 func _on_product_details_received(response: Dictionary) -> void:
-	var list: Array = response.get("product_details_list", [])
-	var unfetched: Array = response.get("unfetched_product_list", [])
+	var raw_list: Array = response.get("product_details_list", [])
+	var raw_unfetched: Array = response.get("unfetched_product_list", [])
+
+	var list: Array[Dictionary] = []
+	list.assign(raw_list)
+
+	var unfetched: Array[Dictionary] = []
+	unfetched.assign(raw_unfetched)
 
 	var type: String = TYPE_INAPP
 	if list.size() > 0:
 		type = list[0].get("product_type", TYPE_INAPP)
 
-	product_details_received.emit(list, unfetched, type)
+	iap_product_details_received.emit(list, unfetched, type)
