@@ -6,19 +6,19 @@ If you'd rather learn from a working example, take a look at the [iapp_demo app]
 
 ## Quick Start
 
-### 1. Install the plugin
+### Install the Plugin
 
-1. Copy `addon/android_IAPP` into your project's `res://addons/` folder.
-2. Enable **AndroidIAPP** under **Project > Project Settings > Plugins**.
-3. Add a `GooglePlayBilling` node to your scene. The examples below assume it is named `GooglePlayBilling` and is a child of the node running your script.
+Choose one of the installation methods:
 
-### 2. Configure Android export
+- **Method 1: Godot Asset Library**
+Install the plugin directly from the [Godot Asset Library](https://store.godotengine.org) within the editor.
+- **Method 2: GitHub Releases**
+Download the latest archive from [GitHub Releases](https://github.com/code-with-max/godot-google-play-iapp/releases) and extract the contents into your project's `res://addons/` folder.
 
-In **Project > Export > Android**:
+**Next Steps:**
 
-1. Enable **Use Custom Build** so Gradle can include the Billing Library.
-2. Enable the **Billing** permission.
-3. Disable Godot's built-in **Google Play Billing** plugin to avoid bundling the legacy billing implementation.
+1. Enable **AndroidIAPP** under **Project > Project Settings > Plugins**.
+2. Add a `GooglePlayBilling` node to your scene (or set up `GooglePlayBilling.gd` as an Autoload named `Billing`).
 
 ### 3. Connect and query products
 
