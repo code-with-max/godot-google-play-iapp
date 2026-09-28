@@ -30,17 +30,16 @@ jobs:
 
       - name: Package AndroidIAPP plugin
         run: |
-          mkdir -p addons/android_IAPP
-          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-release.aar addons/android_IAPP/
-          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-debug.aar addons/android_IAPP/
-          cp addon/android_IAPP/AndroidIAPP.gd addons/android_IAPP/
-          cp addon/android_IAPP/GooglePlayBilling.gd addons/android_IAPP/
-          cp addon/android_IAPP/plugin.cfg addons/android_IAPP/
-          cp LICENSE addons/android_IAPP/
-          zip -r android_IAPP.zip addons
+          mkdir -p package/addons/android_IAPP
+          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-release.aar package/addons/android_IAPP/
+          cp AndroidIAPP/build/outputs/aar/AndroidIAPP-debug.aar package/addons/android_IAPP/
+          cp addon/android_IAPP/AndroidIAPP.gd package/addons/android_IAPP/
+          cp addon/android_IAPP/GooglePlayBilling.gd package/addons/android_IAPP/
+          cp addon/android_IAPP/plugin.cfg package/addons/android_IAPP/
+          cp LICENSE package/addons/android_IAPP/
 
       - name: Upload AndroidIAPP plugin
         uses: actions/upload-artifact@v7
         with:
           name: android_IAPP
-          path: android_IAPP.zip
+          path: package/
